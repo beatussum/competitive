@@ -94,7 +94,7 @@ init()
 {
     local -r url="$1"
     
-    local -r problem="$(sed -En 's|.*/([0-9])/([A-Z])|\1\2|p' <<< "${url}" )"
+    local -r problem="$(sed -En 's|.*/([0-9]+)/([A-Z])/?|\1\2|p' <<< "${url}" )"
     
     install -dm755 "${problem}/"
     install -m644 "${EXE_DIR}/templates"/{problem.cpp,CMakeLists.txt} \
