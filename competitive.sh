@@ -158,8 +158,12 @@ commit()
 		shift
 	done
 
+	info "Adding '${problem_name}' to Git…"
+
 	git add "${EXE_DIR}/${problem_name}"
 	git commit -m "add ${problem_name}" -s
+
+	info "Committed!"
 
 	exit 0
 }
@@ -190,7 +194,10 @@ copy()
 		shift
 	done
 
-	xclip -selection clipboard < "${EXE_DIR}/${problem}/problem.cpp"
+	local -r file="${EXE_DIR}/${problem}/problem.cpp"
+
+	info "Copying '${file}' into the clipboard…"
+	xclip -selection clipboard < "${file}"
 
 	exit 0
 }
