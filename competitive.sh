@@ -161,28 +161,29 @@ init()
 				exit 0
 			;;
 			-p|--platform)
-				shift
-				platform="$1"
+				platform="$2"
 			;;
 			-u|--url)
-				shift
-				problem_url="$1"
+				problem_url="$2"
 			;;
 			-*)
 				die "'$1' is not a valid option"
 			;;
 			*)
-				shift
 				problem_name="$1"
 			;;
 		esac
 
 		shift
 	done
-	
+
+	info "Initializing ${problem_name}…"
+
+	local -r dir="${EXE_DIR}/${problem_name}"
+
 	case "${platform}" in
 		""|codeforces)
-			local suffix="$(sed -E "s|([0-9]+)([A-Z])|\1/\2|p" <<< "${problem_name}")"
+			local suffix="$(sed -En "s|([0-9]+)([A-Z])|\1/\2|p" <<< "${problem_name}")"
 			problem_url="https://codeforces.com/problemset/problem/${suffix}/"
 
 			unset suffix
@@ -197,13 +198,12 @@ init()
 	[[ -z "${problem_name}" ]] && die "The problem name cannot be empty"
 
 	install -dm755 "${problem_name}/"
-	install -m644 "${EXE_DIR}/templates"/{problem.cpp,CMakeLists.txt} \
-		"${problem_name}/"
+	install -m644 "${EXE_DIR}/templates"/{problem.cpp,CMakeLists.txt} "${dir}"
 
 	sed -i \
 		-e "s/@PROBLEM@/${problem_name}/g" \
 		-e "s|@URL@|${problem_url}|g" \
-		"${problem_url}"/*
+		"${dir}"/*
 
 	exit 0
 }
@@ -217,7 +217,7 @@ run()
 		usage_new_option "-h" "--help" "Prints this message"
 		usage_new_option "-p" "--problemset" "Overrides the default problem name"
 	}
-	
+
 	local problem_name="$(dirname "${PWD}")"
 
 	while [[ $# -gt 0 ]]; do
@@ -227,7 +227,7 @@ run()
 				exit 0
 			;;
 			-p|--problemset)
-				problem_name="$1"
+				problem_name="$2"
 			;;
 			*)
 				die "'$1' is not a valid option"
@@ -238,7 +238,7 @@ run()
 	done
 
 	[[ -z "${problem_name}" ]] && die "The problem name cannot be empty"
-	
+
 	local -r build_dir="${EXE_DIR}/${problem_name}/build"
 
 	cmake -B "${build_dir}" -G Ninja
@@ -277,5 +277,3 @@ while [[ $# -gt 0 ]]; do
 
 	shift
 done
-
-[[ $# -eq 0 ]] && usage
