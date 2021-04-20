@@ -1,19 +1,3 @@
-# Copyright (C) 2021 Mattéo Rossillol‑‑Laruelle <beatussum@protonmail.com>
-#
-# This program is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program. If not, see <https://www.gnu.org/licenses/>.
-
-
 cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0048 NEW)
 
@@ -28,16 +12,11 @@ macro(add_gcc_cxx_flags _flags)
     endif()
 endmacro()
 
-# Use ccache if installed
-find_program(CCACHE_FOUND ccache)
-if(CCACHE_FOUND)
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-endif()        
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_EXTENSIONS FALSE)
 
+add_gcc_cxx_flags(-fdiagnostics-color=always)
 add_gcc_cxx_flags(-fno-gnu-keywords -fno-operator-names)
 add_gcc_cxx_flags(-funsigned-char -pipe -fmessage-length=75)
 add_gcc_cxx_flags(-Wnoexcept -Wold-style-cast -Woverloaded-virtual)

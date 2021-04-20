@@ -20,119 +20,231 @@ readonly EXE_DIR="$(dirname $0)"
 readonly EXE_NAME="$(basename $0)"
 
 declare -Ar COLOR=(
-    [bold]="\e[1m"
-    
-    [bgreen]="\e[1;32m"
-    [bred]="\e[1;31m"
-    [byellow]="\e[1;33m"
-    
-    [off]="\e[0m"
+	[bold]="\e[1m"
+
+	[bgreen]="\e[1;32m"
+	[bred]="\e[1;31m"
+	[byellow]="\e[1;33m"
+
+	[off]="\e[0m"
 )
 
 set -e
 
-usage_new_menu() 
+info()
 {
-    local -r menu="$1"
-    
-    printf "${COLOR[bgreen]}%s:${COLOR[off]}\n" \
-        "${menu}"
+	local -r msg="$*"
+
+	printf "${COLOR[bgreen]}*${COLOR[off]} %s\n" "${msg}"
+}
+
+info_in_square()
+{
+	local -r msg="$*"
+
+	echo
+	printf "=%.0s" $(seq 0 $((${#msg} + 2))); echo
+	info "${msg}"
+	printf "=%.0s" $(seq 0 $((${#msg} + 2))); echo
+	echo
+}
+
+error()
+{
+	local -r msg="$*"
+
+	printf "${COLOR[bred]}*${COLOR[off]} %s\n" "${msg}"
+}
+
+die()
+{
+	local -r msg="$*"
+
+	error "${msg}"; echo
+	usage
+	exit 2
+}
+
+usage_new_menu()
+{
+	local -r menu="$1"
+
+	printf "${COLOR[bgreen]}%s:${COLOR[off]}\n" \
+		"${menu}"
 }
 
 usage_new_subcommand()
 {
-    local -r subcommand="$1"
-    local -r desc="$2"
-    
-    printf "  ${COLOR[byellow]}%s${COLOR[off]} ${COLOR[bred]}:${COLOR[off]} %s\n" \
-        "${subcommand}" "${desc}"
+	local -r subcommand="$1"
+	local -r desc="$2"
+
+	printf "  ${COLOR[byellow]}%s${COLOR[off]} ${COLOR[bred]}:${COLOR[off]} %s\n" \
+		"${subcommand}" "${desc}"
 }
 
 usage_new_option()
 {
-    local -r option="$1"
-    local -r long_option="$2"
-    local -r desc="$3"
-    
-    printf "  ${COLOR[bold]}%s${COLOR[off]} ${COLOR[bred]}:${COLOR[off]} %s\n" \
-        "${option}, ${long_option}" "${desc}"
+	local -r option="$1"
+	local -r long_option="$2"
+	local -r desc="$3"
+
+	printf "  ${COLOR[bold]}%s${COLOR[off]} ${COLOR[bred]}:${COLOR[off]} %s\n" \
+		"${option}, ${long_option}" "${desc}"
 }
 
 usage()
 {
-    header()
-    {
-        echo -e "${COLOR[bgreen]}usage:${COLOR[off]} ${COLOR[byellow]}${EXE_NAME}${COLOR[off]} ${COLOR[bold]}[options]${COLOR[off]}"
-        echo -e "       ${COLOR[byellow]}${EXE_NAME}${COLOR[off]} ${COLOR[bold]}[options] <subcommand> [subcommand options]${COLOR[bold]}"
-    }
-    
-    header
-    echo
-    usage_new_menu "Subcommands"
-    usage_new_subcommand "init" "Create a new problemset"
-    echo
-    usage_new_menu "Options"
-    usage_new_option "-h" "--help" "Print this message"
+	header()
+	{
+		echo -e "${COLOR[bgreen]}usage:${COLOR[off]} ${COLOR[byellow]}${EXE_NAME}${COLOR[off]} ${COLOR[bold]}[options]${COLOR[off]}"
+		echo -e "  ${COLOR[byellow]}${EXE_NAME}${COLOR[off]} ${COLOR[bold]}[options] <subcommand> [subcommand options]${COLOR[bold]}"
+	}
+
+	header
+	echo
+	usage_new_menu "Subcommands"
+	usage_new_subcommand "init" "Creates a new problemset"
+	usage_new_subcommand "run" "Runs the current problemset"
+	echo
+	usage_new_menu "Options"
+	usage_new_option "-h" "--help" "Prints this message"
+	usage_new_option "-p" "--problemset" "Changes the name of the problemset"
 }
 
 usage_subcommand_header()
 {
-    local -r header="$1"
+	local -r header="$1"
 
-    echo -e "${COLOR[bgreen]}usage:${COLOR[off]} ${COLOR[byellow]}${EXE_NAME}${COLOR[off]} ${COLOR[bold]}[options] ${COLOR[byellow]}${header}${COLOR[off]} ${COLOR[bold]}[subcommand options]${COLOR[off]}"
-    echo
-}
-
-usage_init()
-{
-    usage_subcommand_header "init"
-    usage_new_menu "Subcommand options"
-    usage_new_option "-h" "--help" "Print this message"
+	echo -e "${COLOR[bgreen]}usage:${COLOR[off]} ${COLOR[byellow]}${EXE_NAME}${COLOR[off]} ${COLOR[bold]}[options] ${COLOR[byellow]}${header}${COLOR[off]} ${COLOR[bold]}[subcommand options]${COLOR[off]}\n"
 }
 
 init()
 {
-    local -r url="$1"
-    
-    local -r problem="$(sed -En 's|.*/([0-9]+)/([A-Z])/?|\1\2|p' <<< "${url}" )"
-    
-    install -dm755 "${problem}/"
-    install -m644 "${EXE_DIR}/templates"/{problem.cpp,CMakeLists.txt} \
-        "${problem}/"
-        
-    sed -i \
-        -e "s/@PROBLEM@/${problem}/g" \
-        -e "s|@URL@|${url}|g" \
-        "${problem}"/*
+	usage()
+	{
+		usage_subcommand_header "init" "problem name"
+		usage_new_menu "Subcommand options"
+		usage_new_option "-h" "--help" "Prints this message"
+		usage_new_option "-p" "--platform" "Sets the platform"
+		usage_new_option "-u" "--url" "Sets the problem url"
+	}
+
+	local platform problem_name problem_url
+
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+			-h|--help)
+				usage
+				exit 0
+			;;
+			-p|--platform)
+				shift
+				platform="$1"
+			;;
+			-u|--url)
+				shift
+				problem_url="$1"
+			;;
+			-*)
+				die "'$1' is not a valid option"
+			;;
+			*)
+				shift
+				problem_name="$1"
+			;;
+		esac
+
+		shift
+	done
+	
+	case "${platform}" in
+		""|codeforces)
+			local suffix="$(sed -E "s|([0-9]+)([A-Z])|\1/\2|p" <<< "${problem_name}")"
+			problem_url="https://codeforces.com/problemset/problem/${suffix}/"
+
+			unset suffix
+		;;
+		custom)
+		;;
+		*)
+			die "'$1' is an unknown platform"
+		;;
+	esac
+
+	[[ -z "${problem_name}" ]] && die "The problem name cannot be empty"
+
+	install -dm755 "${problem_name}/"
+	install -m644 "${EXE_DIR}/templates"/{problem.cpp,CMakeLists.txt} \
+		"${problem_name}/"
+
+	sed -i \
+		-e "s/@PROBLEM@/${problem_name}/g" \
+		-e "s|@URL@|${problem_url}|g" \
+		"${problem_url}"/*
 }
 
-while :; do
-    case "$1" in
-        ""|-h|--help)
-            usage
-        ;;
-        init)
-            shift
-            case "$1" in
-                ""|-h|--help)
-                    usage_init
-                ;;
-                -*)
-                    usage_init
-                    exit 1
-                ;;
-                *)
-                    init "$1"
-                ;;
-            esac
-        ;;
-        *)
-            usage
-            exit 1
-        ;;
-    esac
-    
-    shift
-    
-    [[ $# -eq 0 ]] && break
+run()
+{
+	usage()
+	{
+		usage_subcommand_header "run"
+		usage_new_menu "Subcommand options"
+		usage_new_option "-h" "--help" "Prints this message"
+		usage_new_option "-p" "--problemset" "Overrides the default problem name"
+	}
+	
+	local problem_name="$(dirname "${PWD}")"
+
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+			-h|--help)
+				usage
+				exit 0
+			;;
+			-p|--problemset)
+				problem_name="$1"
+			;;
+			*)
+				die "'$1' is not a valid option"
+			;;
+		esac
+
+		shift
+	done
+
+	[[ -z "${problem_name}" ]] && die "The problem name cannot be empty"
+	
+	local -r build_dir="${EXE_DIR}/${problem_name}/build"
+
+	cmake -B "${build_dir}" -G Ninja
+	ninja -C "${build_dir}" -j"$((nproc + 1))"
+
+	info_in_square "Starting ${problem_name}…"
+
+	exec "${EXE_DIR}/${problem_name}/build/problem"
+}
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+		-h|--help)
+			usage
+			exit 0
+		;;
+		run)
+			shift
+			run "$@"
+		;;
+		init)
+			shift
+			init "$@"
+		;;
+		-*)
+			die "'$1' is not a valid option"
+		;;
+		*)
+			die "'$1' is not a valid subcommand"
+		;;
+	esac
+
+	shift
 done
