@@ -78,7 +78,7 @@ usage_new_subcommand()
 	local -r subcommand="$1"
 	local -r desc="$2"
 
-	printf "  ${COLOR[byellow]}%s${COLOR[off]} ${COLOR[bred]}:${COLOR[off]} %s\n" \
+	printf "  ${COLOR[byellow]}%-10s${COLOR[off]} ${COLOR[bred]}:${COLOR[off]} %s\n" \
 		"${subcommand}" "${desc}"
 }
 
@@ -88,7 +88,7 @@ usage_new_option()
 	local -r long_option="$2"
 	local -r desc="$3"
 
-	printf "  ${COLOR[bold]}%s${COLOR[off]} ${COLOR[bred]}:${COLOR[off]} %s\n" \
+	printf "  ${COLOR[bold]}%-20s${COLOR[off]} ${COLOR[bred]}:${COLOR[off]} %s\n" \
 		"${option}, ${long_option}" "${desc}"
 }
 
@@ -176,9 +176,10 @@ copy()
 		usage_new_menu "Subcommand options"
 		usage_new_option "-h" "--help" "Prints this message"
 		usage_new_option "-p" "--problem" "Overrides the default problem name"
+		usage_new_option "-u" "--uri" "Copies the real file not its content"
 	}
 
-	local problem_name="$(basename "${PWD}")"
+	local problem_name="$(basename "${PWD}")" xclip_args
 
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
@@ -189,6 +190,9 @@ copy()
 			-p|--problem)
 				problem_name="$2"
 			;;
+			-u|--uri)
+				xclip_args="-t text/uri-list"
+			;;
 		esac
 
 		shift
@@ -197,7 +201,7 @@ copy()
 	local -r file="${EXE_DIR}/${problem_name}/problem.cpp"
 
 	info "Copying '${file}' into the clipboard…"
-	xclip -selection clipboard < "${file}"
+	xclip -selection clipboard "${xclip_args}" < "${file}"
 
 	exit 0
 }
