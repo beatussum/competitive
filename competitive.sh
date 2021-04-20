@@ -108,14 +108,25 @@ usage()
 	echo
 	usage_new_menu "Options"
 	usage_new_option "-h" "--help" "Prints this message"
-	usage_new_option "-p" "--problemset" "Changes the name of the problemset"
+	usage_new_option "-p" "--problemset" "Changes the problem name"
 }
 
 usage_subcommand_header()
 {
-	local -r header="$1"
+	local -r header="$1"; shift
+	local -r args="$@"
 
-	echo -e "${COLOR[bgreen]}usage:${COLOR[off]} ${COLOR[byellow]}${EXE_NAME}${COLOR[off]} ${COLOR[bold]}[options] ${COLOR[byellow]}${header}${COLOR[off]} ${COLOR[bold]}[subcommand options]${COLOR[off]}\n"
+	echo -en "${COLOR[bgreen]}usage:${COLOR[off]} ${COLOR[byellow]}${EXE_NAME}${COLOR[off]} ${COLOR[bold]}[options] ${COLOR[byellow]}${header}${COLOR[off]} ${COLOR[bold]}[subcommand options]${COLOR[off]}"
+
+	for i in "${args[@]}"; do
+		if grep -q "^o" <<< "${i}"; then
+			printf " ${COLOR[bold]}[%s]${COLOR[off]}" "${i#o}"
+		else
+			printf " ${COLOR[bold]}<%s>${COLOR[off]}" "${i}"
+		fi
+	done
+
+	echo; echo
 }
 
 init()
