@@ -103,6 +103,7 @@ usage()
 	header
 	echo
 	usage_new_menu "Subcommands"
+	usage_new_subcommand "copy" "Copies the current problem into the clipboard"
 	usage_new_subcommand "evalenv" "Prints the instructions needed to load a suitable environment"
 	usage_new_subcommand "init" "Creates a new problem"
 	usage_new_subcommand "run" "Runs the current problem"
@@ -130,6 +131,42 @@ usage_subcommand_header()
 	echo; echo
 }
 
+copy()
+{
+	usage()
+	{
+		usage_subcommand_header "copy"
+		usage_new_menu "Subcommand options"
+		usage_new_option "-h" "--help" "Prints this message"
+		usage_new_option "-p" "--problem" "Overrides the default problem name"
+	}
+
+	local problem_name="$(basename "${PWD}")"
+
+	if [[ $# -eq 0 ]]; then
+		usage
+		exit 0
+	fi
+
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+			-h|--help)
+				usage
+				exit 0
+			;;
+			-p|--problem)
+				problem_name="$2"
+			;;
+		esac
+
+		shift
+	done
+
+	xclip -selection clipboard < "${EXE_DIR}/${problem}/problem.cpp"
+
+	exit 0
+}
+
 evalenv()
 {
 	local -Ar env=(
@@ -139,6 +176,8 @@ evalenv()
 	for key in "${!env[@]}"; do
 		echo "export ${key}=\"\${${key}}:${env[${key}]}\""
 	done
+
+	exit 0
 }
 
 init()
@@ -220,15 +259,10 @@ run()
 		usage_subcommand_header "run"
 		usage_new_menu "Subcommand options"
 		usage_new_option "-h" "--help" "Prints this message"
-		usage_new_option "-p" "--problemset" "Overrides the default problem name"
+		usage_new_option "-p" "--problem" "Overrides the default problem name"
 	}
 
 	local problem_name="$(basename "${PWD}")"
-
-	if [[ $# -eq 0 ]]; then
-		usage
-		exit 0
-	fi
 
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
@@ -236,7 +270,7 @@ run()
 				usage
 				exit 0
 			;;
-			-p|--problemset)
+			-p|--problem)
 				problem_name="$2"
 			;;
 			*)
@@ -270,9 +304,11 @@ while [[ $# -gt 0 ]]; do
 			usage
 			exit 0
 		;;
+		copy)
+			copy
+		;;
 		evalenv)
 			evalenv
-			exit 0
 		;;
 		init)
 			shift
