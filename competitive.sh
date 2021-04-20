@@ -144,11 +144,6 @@ commit()
 
 	local problem_name="$(basename "${PWD}")"
 
-	if [[ $# -eq 0 ]]; then
-		usage
-		exit 0
-	fi
-
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
 			-h|--help)
@@ -180,11 +175,6 @@ copy()
 	}
 
 	local problem_name="$(basename "${PWD}")"
-
-	if [[ $# -eq 0 ]]; then
-		usage
-		exit 0
-	fi
 
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
