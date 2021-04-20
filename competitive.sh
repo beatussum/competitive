@@ -122,7 +122,7 @@ usage_subcommand_header()
 	for i in "${args[@]}"; do
 		if grep -q "^o" <<< "${i}"; then
 			printf " ${COLOR[bold]}[%s]${COLOR[off]}" "${i#o}"
-		else
+		elif [[ -n "${i}" ]]; then
 			printf " ${COLOR[bold]}<%s>${COLOR[off]}" "${i}"
 		fi
 	done
@@ -153,6 +153,11 @@ init()
 	}
 
 	local platform problem_name problem_url
+
+	if [[ $# -eq 0 ]]; then
+		usage
+		exit 0
+	fi
 
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
@@ -218,7 +223,12 @@ run()
 		usage_new_option "-p" "--problemset" "Overrides the default problem name"
 	}
 
-	local problem_name="$(dirname "${PWD}")"
+	local problem_name="$(basename "${PWD}")"
+
+	if [[ $# -eq 0 ]]; then
+		usage
+		exit 0
+	fi
 
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
@@ -248,6 +258,11 @@ run()
 
 	exec "${EXE_DIR}/${problem_name}/build/problem"
 }
+
+if [[ $# -eq 0 ]]; then
+	usage
+	exit 0
+fi
 
 while [[ $# -gt 0 ]]; do
 	case "$1" in
