@@ -103,10 +103,11 @@ usage()
 	header
 	echo
 	usage_new_menu "Subcommands"
-	usage_new_subcommand "copy" "Copies the current problem into the clipboard"
+	usage_new_subcommand "commit" "Commits a problem"
+	usage_new_subcommand "copy" "Copies a problem into the clipboard"
 	usage_new_subcommand "evalenv" "Prints the instructions needed to load a suitable environment"
 	usage_new_subcommand "init" "Creates a new problem"
-	usage_new_subcommand "run" "Runs the current problem"
+	usage_new_subcommand "run" "Runs a problem"
 	echo
 	usage_new_menu "Options"
 	usage_new_option "-h" "--help" "Prints this message"
@@ -129,6 +130,43 @@ usage_subcommand_header()
 	done
 
 	echo; echo
+}
+
+commit()
+{
+	usage()
+	{
+		usage_subcommand_header "commit"
+		usage_new_menu "Subcommand options"
+		usage_new_option "-h" "--help" "Prints this message"
+		usage_new_option "-p" "--problem" "Overrides the default problem name"
+	}
+
+	local problem_name="$(basename "${PWD}")"
+
+	if [[ $# -eq 0 ]]; then
+		usage
+		exit 0
+	fi
+
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+			-h|--help)
+				usage
+				exit 0
+			;;
+			-p|--problem)
+				problem_name="$2"
+			;;
+		esac
+
+		shift
+	done
+
+	git add "${EXE_DIR}/${problem_name}"
+	git commit -m "add ${problem_name}" -s
+
+	exit 0
 }
 
 copy()
@@ -304,8 +342,13 @@ while [[ $# -gt 0 ]]; do
 			usage
 			exit 0
 		;;
+		commit)
+			shift
+			commit "$@"
+		;;
 		copy)
-			copy
+			shift
+			copy "$@"
 		;;
 		evalenv)
 			evalenv
