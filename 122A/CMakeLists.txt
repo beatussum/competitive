@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0048 NEW)
 
-project(121A
-        HOMEPAGE_URL "https://codeforces.com/problemset/problem/121/A/"
+project(122A
+        HOMEPAGE_URL "https://codeforces.com/problemset/problem/122/A/"
         LANGUAGES CXX)
 
 unset(CMAKE_CXX_FLAGS_RELEASE CACHE)
