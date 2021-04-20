@@ -201,7 +201,7 @@ copy()
 	local -r file="${EXE_DIR}/${problem_name}/problem.cpp"
 
 	info "Copying '${file}' into the clipboard…"
-	xclip -selection clipboard "${xclip_args}" < "${file}"
+	xclip -selection clipboard ${xclip_args} < "${file}"
 
 	exit 0
 }
