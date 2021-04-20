@@ -97,7 +97,7 @@ usage()
 	header()
 	{
 		echo -e "${COLOR[bgreen]}usage:${COLOR[off]} ${COLOR[byellow]}${EXE_NAME}${COLOR[off]} ${COLOR[bold]}[options]${COLOR[off]}"
-		echo -e "  ${COLOR[byellow]}${EXE_NAME}${COLOR[off]} ${COLOR[bold]}[options] <subcommand> [subcommand options]${COLOR[bold]}"
+		echo -e "       ${COLOR[byellow]}${EXE_NAME}${COLOR[off]} ${COLOR[bold]}[options] <subcommand> [subcommand options]${COLOR[bold]}"
 	}
 
 	header
@@ -151,7 +151,11 @@ commit()
 				exit 0
 			;;
 			-p|--problem)
-				problem_name="$2"
+				shift
+				problem_name="$1"
+			;;
+			*)
+				die "'$1' is not a valid option"
 			;;
 		esac
 
@@ -188,10 +192,14 @@ copy()
 				exit 0
 			;;
 			-p|--problem)
-				problem_name="$2"
+				shift
+				problem_name="$1"
 			;;
 			-u|--uri)
 				uri=true
+			;;
+			*)
+				die "'$1' is not a valid option"
 			;;
 		esac
 
@@ -202,10 +210,10 @@ copy()
 
 	info "Copying '${file}' into the clipboard…"
 
-	if [[ uri = true ]]; then
-		xclip -selection clipboard ${xclip_args} -t text/uri-list "${file}"
+	if [[ "${uri}" = true ]]; then
+		xclip -selection clipboard -t text/uri-list <<< "file://${file}"
 	else
-		xclip -selection clipboard ${xclip_args} "${file}"
+		xclip -selection clipboard "${file}"
 	fi
 
 	exit 0
@@ -249,10 +257,12 @@ init()
 				exit 0
 			;;
 			-p|--platform)
-				platform="$2"
+				shift
+				platform="$1"
 			;;
 			-u|--url)
-				problem_url="$2"
+				shift
+				problem_url="$1"
 			;;
 			-*)
 				die "'$1' is not a valid option"
@@ -315,7 +325,8 @@ run()
 				exit 0
 			;;
 			-p|--problem)
-				problem_name="$2"
+				shift
+				problem_name="$1"
 			;;
 			*)
 				die "'$1' is not a valid option"
