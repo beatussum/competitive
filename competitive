@@ -179,7 +179,7 @@ copy()
 		usage_new_option "-u" "--uri" "Copies the real file not its content"
 	}
 
-	local problem_name="$(basename "${PWD}")" xclip_args
+	local problem_name="$(basename "${PWD}")" uri=false
 
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
@@ -191,7 +191,7 @@ copy()
 				problem_name="$2"
 			;;
 			-u|--uri)
-				xclip_args="-t text/uri-list"
+				uri=true
 			;;
 		esac
 
@@ -201,7 +201,12 @@ copy()
 	local -r file="${EXE_DIR}/${problem_name}/problem.cpp"
 
 	info "Copying '${file}' into the clipboard…"
-	xclip -selection clipboard ${xclip_args} < "${file}"
+
+	if [[ uri = true ]]; then
+		xclip -selection clipboard ${xclip_args} -t text/uri-list "${file}"
+	else
+		xclip -selection clipboard ${xclip_args} "${file}"
+	fi
 
 	exit 0
 }
@@ -230,7 +235,7 @@ init()
 		usage_new_option "-u" "--url" "Sets the problem url"
 	}
 
-	local platform problem_name problem_url
+	local platform="codeforces" problem_name problem_url
 
 	if [[ $# -eq 0 ]]; then
 		usage
@@ -265,7 +270,7 @@ init()
 	local -r dir="${EXE_DIR}/${problem_name}"
 
 	case "${platform}" in
-		""|codeforces)
+		codeforces)
 			local suffix="$(sed -En "s|([0-9]+)([A-Z])|\1/\2|p" <<< "${problem_name}")"
 			problem_url="https://codeforces.com/problemset/problem/${suffix}/"
 
