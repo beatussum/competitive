@@ -104,8 +104,8 @@ usage()
 	echo
 	usage_new_menu "Subcommands"
 	usage_new_subcommand "evalenv" "Prints the instructions needed to load a suitable environment"
-	usage_new_subcommand "init" "Creates a new problemset"
-	usage_new_subcommand "run" "Runs the current problemset"
+	usage_new_subcommand "init" "Creates a new problem"
+	usage_new_subcommand "run" "Runs the current problem"
 	echo
 	usage_new_menu "Options"
 	usage_new_option "-h" "--help" "Prints this message"
@@ -277,3 +277,5 @@ while [[ $# -gt 0 ]]; do
 
 	shift
 done
+
+[[ $# -eq 0 ]] && usage
