@@ -16,7 +16,7 @@
 # this program. If not, see <https://www.gnu.org/licenses/>.
 
 
-readonly EXE_DIR="$(dirname $0)"
+readonly EXE_DIR="$(dirname $(realpath $0))"
 readonly EXE_NAME="$(basename $0)"
 
 declare -Ar COLOR=(
@@ -103,6 +103,7 @@ usage()
 	header
 	echo
 	usage_new_menu "Subcommands"
+	usage_new_subcommand "evalenv" "Prints the instructions needed to load a suitable environment"
 	usage_new_subcommand "init" "Creates a new problemset"
 	usage_new_subcommand "run" "Runs the current problemset"
 	echo
@@ -127,6 +128,17 @@ usage_subcommand_header()
 	done
 
 	echo; echo
+}
+
+evalenv()
+{
+	local -Ar env=(
+		[PATH]="${EXE_DIR}"
+	)
+
+	for key in "${!env[@]}"; do
+		echo "export ${key}=\"\${${key}}:${env[${key}]}\""
+	done
 }
 
 init()
@@ -192,6 +204,8 @@ init()
 		-e "s/@PROBLEM@/${problem_name}/g" \
 		-e "s|@URL@|${problem_url}|g" \
 		"${problem_url}"/*
+
+	exit 0
 }
 
 run()
@@ -241,13 +255,17 @@ while [[ $# -gt 0 ]]; do
 			usage
 			exit 0
 		;;
-		run)
-			shift
-			run "$@"
+		evalenv)
+			evalenv
+			exit 0
 		;;
 		init)
 			shift
 			init "$@"
+		;;
+		run)
+			shift
+			run "$@"
 		;;
 		-*)
 			die "'$1' is not a valid option"
