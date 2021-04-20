@@ -194,7 +194,7 @@ copy()
 		shift
 	done
 
-	local -r file="${EXE_DIR}/${problem}/problem.cpp"
+	local -r file="${EXE_DIR}/${problem_name}/problem.cpp"
 
 	info "Copying '${file}' into the clipboard…"
 	xclip -selection clipboard < "${file}"
