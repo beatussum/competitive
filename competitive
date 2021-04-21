@@ -103,6 +103,7 @@ usage()
 	header
 	echo
 	usage_new_menu "Subcommands"
+	usage_new_subcommand "clean" "Cleans a problem"
 	usage_new_subcommand "commit" "Commits a problem"
 	usage_new_subcommand "copy" "Copies a problem into the clipboard"
 	usage_new_subcommand "evalenv" "Prints the instructions needed to load a suitable environment"
@@ -130,6 +131,55 @@ usage_subcommand_header()
 	done
 
 	echo; echo
+}
+
+clean()
+{
+	usage()
+	{
+		usage_subcommand_header "clean"
+		usage_new_menu "Subcommand options"
+		usage_new_option "-h" "--help" "Prints this message"
+		usage_new_option "-a" "--all" "Cleans all problems inside the project directory"
+		usage_new_option "-p" "--problem" "Overrides the default problem name"
+	}
+
+	local all=false problem_name="$(basename "${PWD}")"
+
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+			-h|--help)
+				usage
+				exit 0
+			;;
+			-a|--all)
+				all=true
+			;;
+			-p|--problem)
+				shift
+				problem_name="$1"
+			;;
+			*)
+				die "'$1' is not a valid option"
+			;;
+		esac
+
+		shift
+	done
+
+	local -r build_dir="${EXE_DIR}/${problem_name}/build"
+
+	if [[ "${all}" = true ]]; then
+		for p in $(find "${EXE_DIR}" -mindepth 1 -maxdepth 1 -type d ! -path "*/\.*" ! -name "templates"); do
+			clean -p "$(basename "${p}")"
+		done
+	elif [[ -d "${build_dir}" ]]; then
+		info "Cleaning ${problem_name}…"
+
+		rm -fr "${build_dir}"
+	else
+		info "${build_dir} is already cleaned!"
+	fi
 }
 
 commit()
@@ -338,9 +388,10 @@ run()
 
 	[[ -z "${problem_name}" ]] && die "The problem name cannot be empty"
 
+	local -r source_dir="${EXE_DIR}/${problem_name}"
 	local -r build_dir="${EXE_DIR}/${problem_name}/build"
 
-	cmake -B "${build_dir}" -G Ninja
+	cmake -B "${build_dir}" -G Ninja -S "${source_dir}"
 	ninja -C "${build_dir}" -j"$((nproc + 1))"
 
 	info_in_square "Starting ${problem_name}…"
@@ -358,6 +409,10 @@ while [[ $# -gt 0 ]]; do
 		-h|--help)
 			usage
 			exit 0
+		;;
+		clean)
+			shift
+			clean "$@"
 		;;
 		commit)
 			shift
