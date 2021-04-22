@@ -16,10 +16,7 @@
 # this program. If not, see <https://www.gnu.org/licenses/>.
 
 
-readonly EXE_DIR="$(dirname $(realpath $0))"
-readonly EXE_NAME="$(basename $0)"
-
-declare -Ar COLOR=(
+declare -A COLOR=(
 	[bold]="\e[1m"
 
 	[bgreen]="\e[1;32m"
@@ -28,6 +25,9 @@ declare -Ar COLOR=(
 
 	[off]="\e[0m"
 )
+
+readonly EXE_DIR="$(dirname "$(realpath "$0")")"
+readonly EXE_NAME="$(basename "$0")"
 
 set -e
 
@@ -49,20 +49,32 @@ info_in_square()
 	echo
 }
 
-error()
-{
-	local -r msg="$*"
-
-	printf "${COLOR[bred]}*${COLOR[off]} %s\n" "${msg}"
-}
-
 die()
 {
+	local -r code=$1
+	local -r line=$2
+	shift 2
 	local -r msg="$*"
 
-	error "${msg}"; echo
-	usage
-	exit 2
+	printf "${COLOR[bred]}${EXE_NAME}${COLOR[off]}: " >&2
+	printf "${COLOR[bold]}fatal error at line${COLOR[off]} " >&2
+	printf "${COLOR[byellow]}%u${COLOR[off]}" "${line}" >&2
+
+	if [[ -n "${msg}" ]]; then
+		printf ": %s\n" "${msg}" >&2
+	else
+		echo >&2
+	fi
+
+	exit ${code}
+}
+
+bad_option()
+{
+	local -r line=$1
+	local -r option="$2"
+
+	die 2 ${line} "'${option}' is not a valid option!"
 }
 
 usage_new_menu()
@@ -82,22 +94,43 @@ usage_new_subcommand()
 		"${subcommand}" "${desc}"
 }
 
+parse_option_arguments()
+{
+	for i; do
+		if [[ "${i[1]}" = "o" ]]; then
+			printf "[%s]" "${i#o}"
+		elif [[ -n "${i}" ]]; then
+			printf "<%s>" "${i}"
+		fi
+
+		printf " "
+	done; unset i
+}
+
 usage_new_option()
 {
 	local -r option="$1"
 	local -r long_option="$2"
 	local -r desc="$3"
+	local -r argument="$4"
 
-	printf "  ${COLOR[bold]}%-20s${COLOR[off]} ${COLOR[bred]}:${COLOR[off]} %s\n" \
-		"${option}, ${long_option}" "${desc}"
+	printf "  %-40b ${COLOR[bred]}:${COLOR[off]} %s\n" \
+		"${COLOR[bold]}${option}, ${long_option}${COLOR[off]} ${COLOR[bgreen]}$(parse_option_arguments "${argument}")${COLOR[off]}" \
+		"${desc}"
 }
 
 usage()
 {
 	header()
 	{
-		echo -e "${COLOR[bgreen]}usage:${COLOR[off]} ${COLOR[byellow]}${EXE_NAME}${COLOR[off]} ${COLOR[bold]}[options]${COLOR[off]}"
-		echo -e "       ${COLOR[byellow]}${EXE_NAME}${COLOR[off]} ${COLOR[bold]}[options] <subcommand> [subcommand options]${COLOR[bold]}"
+		printf "${COLOR[bgreen]}usage:${COLOR[off]} "
+		printf "${COLOR[byellow]}${EXE_NAME}${COLOR[off]} "
+		printf "${COLOR[bold]}[options]${COLOR[off]}\n"
+
+		printf "       ${COLOR[byellow]}${EXE_NAME}${COLOR[off]} "
+		printf "${COLOR[bold]}[options]${COLOR[off]} "
+		printf "${COLOR[bold]}<subcommand>${COLOR[off]} "
+		printf "${COLOR[bold]}[subcommand options]${COLOR[off]}\n"
 	}
 
 	header
@@ -112,25 +145,23 @@ usage()
 	echo
 	usage_new_menu "Options"
 	usage_new_option "-h" "--help" "Prints this message"
-	usage_new_option "-p" "--problemset" "Changes the problem name"
+	usage_new_option "-p" "--problem" "Changes the problem name" "name"
 }
 
 usage_subcommand_header()
 {
 	local -r header="$1"; shift
-	local -r args="$@"
+	local -r args=("$@")
 
-	echo -en "${COLOR[bgreen]}usage:${COLOR[off]} ${COLOR[byellow]}${EXE_NAME}${COLOR[off]} ${COLOR[bold]}[options] ${COLOR[byellow]}${header}${COLOR[off]} ${COLOR[bold]}[subcommand options]${COLOR[off]}"
+	printf "${COLOR[bgreen]}usage:${COLOR[off]} "
+	printf "${COLOR[byellow]}${EXE_NAME}${COLOR[off]} "
+	printf "${COLOR[bold]}[options]${COLOR[off]} "
+	printf "${COLOR[byellow]}${header}${COLOR[off]} "
+	printf "${COLOR[bold]}[subcommand options]${COLOR[off]} "
+	printf "${COLOR[bold]}$(parse_option_arguments "${args[@]}")${COLOR[off]}\n\n"
 
-	for i in "${args[@]}"; do
-		if grep -q "^o" <<< "${i}"; then
-			printf " ${COLOR[bold]}[%s]${COLOR[off]}" "${i#o}"
-		elif [[ -n "${i}" ]]; then
-			printf " ${COLOR[bold]}<%s>${COLOR[off]}" "${i}"
-		fi
-	done
-
-	echo; echo
+	usage_new_menu "Subcommand options"
+	usage_new_option "-h" "--help" "Prints this message"
 }
 
 clean()
@@ -138,13 +169,10 @@ clean()
 	usage()
 	{
 		usage_subcommand_header "clean"
-		usage_new_menu "Subcommand options"
-		usage_new_option "-h" "--help" "Prints this message"
 		usage_new_option "-a" "--all" "Cleans all problems inside the project directory"
-		usage_new_option "-p" "--problem" "Overrides the default problem name"
 	}
 
-	local all=false problem_name="$(basename "${PWD}")"
+	local all=false
 
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
@@ -155,27 +183,22 @@ clean()
 			-a|--all)
 				all=true
 			;;
-			-p|--problem)
-				shift
-				problem_name="$1"
-			;;
 			*)
-				die "'$1' is not a valid option"
+				bad_option ${LINENO} "$1"
 			;;
 		esac
 
 		shift
 	done
 
-	local -r build_dir="${EXE_DIR}/${problem_name}/build"
+	local -r build_dir="${WORKING_DIR}/${PROBLEM_NAME}/build"
 
 	if [[ "${all}" = true ]]; then
-		for p in $(find "${EXE_DIR}" -mindepth 1 -maxdepth 1 -type d ! -path "*/\.*" ! -name "templates"); do
+		for p in $(find "${WORKING_DIR}" -mindepth 1 -maxdepth 1 -type d ! -path "*/\.*" ! -name "templates"); do
 			clean -p "$(basename "${p}")"
-		done
+		done; unset p
 	elif [[ -d "${build_dir}" ]]; then
-		info "Cleaning ${problem_name}…"
-
+		info "Cleaning ${PROBLEM_NAME}…"
 		rm -fr "${build_dir}"
 	else
 		info "${build_dir} is already cleaned!"
@@ -184,42 +207,12 @@ clean()
 
 commit()
 {
-	usage()
-	{
-		usage_subcommand_header "commit"
-		usage_new_menu "Subcommand options"
-		usage_new_option "-h" "--help" "Prints this message"
-		usage_new_option "-p" "--problem" "Overrides the default problem name"
-	}
+	info "Adding '${PROBLEM_NAME}' to Git…"
 
-	local problem_name="$(basename "${PWD}")"
-
-	while [[ $# -gt 0 ]]; do
-		case "$1" in
-			-h|--help)
-				usage
-				exit 0
-			;;
-			-p|--problem)
-				shift
-				problem_name="$1"
-			;;
-			*)
-				die "'$1' is not a valid option"
-			;;
-		esac
-
-		shift
-	done
-
-	info "Adding '${problem_name}' to Git…"
-
-	git add "${EXE_DIR}/${problem_name}"
-	git commit -m "add ${problem_name}" -s
+	git add "${WORKING_DIR}/${PROBLEM_NAME}"
+	git commit -m "add ${PROBLEM_NAME}" -s
 
 	info "Committed!"
-
-	exit 0
 }
 
 copy()
@@ -227,13 +220,10 @@ copy()
 	usage()
 	{
 		usage_subcommand_header "copy"
-		usage_new_menu "Subcommand options"
-		usage_new_option "-h" "--help" "Prints this message"
-		usage_new_option "-p" "--problem" "Overrides the default problem name"
 		usage_new_option "-u" "--uri" "Copies the real file not its content"
 	}
 
-	local problem_name="$(basename "${PWD}")" uri=false
+	local uri=false
 
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
@@ -241,22 +231,18 @@ copy()
 				usage
 				exit 0
 			;;
-			-p|--problem)
-				shift
-				problem_name="$1"
-			;;
 			-u|--uri)
 				uri=true
 			;;
 			*)
-				die "'$1' is not a valid option"
+				bad_option ${LINENO} "$1"
 			;;
 		esac
 
 		shift
 	done
 
-	local -r file="${EXE_DIR}/${problem_name}/problem.cpp"
+	local -r file="${WORKING_DIR}/${PROBLEM_NAME}/problem.cpp"
 
 	info "Copying '${file}' into the clipboard…"
 
@@ -265,8 +251,6 @@ copy()
 	else
 		xclip -selection clipboard "${file}"
 	fi
-
-	exit 0
 }
 
 evalenv()
@@ -275,11 +259,9 @@ evalenv()
 		[PATH]="${EXE_DIR}"
 	)
 
-	for key in "${!env[@]}"; do
-		echo "export ${key}=\"\${${key}}:${env[${key}]}\""
-	done
-
-	exit 0
+	for k in "${!env[@]}"; do
+		echo "export ${k}=\"\${${k}}:${env[${k}]}\""
+	done; unset k
 }
 
 init()
@@ -287,13 +269,10 @@ init()
 	usage()
 	{
 		usage_subcommand_header "init" "problem name"
-		usage_new_menu "Subcommand options"
-		usage_new_option "-h" "--help" "Prints this message"
-		usage_new_option "-p" "--platform" "Sets the platform"
 		usage_new_option "-u" "--url" "Sets the problem url"
 	}
 
-	local platform="codeforces" problem_name problem_url
+	local platform="codeforces" problem_url
 
 	if [[ $# -eq 0 ]]; then
 		usage
@@ -314,24 +293,21 @@ init()
 				shift
 				problem_url="$1"
 			;;
-			-*)
-				die "'$1' is not a valid option"
-			;;
 			*)
-				problem_name="$1"
+				bad_option ${LINENO} "$1"
 			;;
 		esac
 
 		shift
 	done
 
-	info "Initializing ${problem_name}…"
+	info "Initializing ${PROBLEM_NAME}…"
 
-	local -r dir="${EXE_DIR}/${problem_name}"
+	local -r dir="${WORKING_DIR}/${PROBLEM_NAME}"
 
 	case "${platform}" in
 		codeforces)
-			local suffix="$(sed -En "s|([0-9]+)([A-Z])|\1/\2|p" <<< "${problem_name}")"
+			local suffix="$(sed -En "s|([0-9]+)([A-Z])|\1/\2|p" <<< "${PROBLEM_NAME}")"
 			problem_url="https://codeforces.com/problemset/problem/${suffix}/"
 
 			unset suffix
@@ -343,30 +319,39 @@ init()
 		;;
 	esac
 
-	[[ -z "${problem_name}" ]] && die "The problem name cannot be empty"
+	[[ -z "${PROBLEM_NAME}" ]] && die "The problem name cannot be empty"
 
-	install -dm755 "${problem_name}/"
-	install -m644 "${EXE_DIR}/templates"/{problem.cpp,CMakeLists.txt} "${dir}"
+	install -dm755 "${PROBLEM_NAME}/"
+
+	install -m644 "${WORKING_DIR}/templates"/{problem.cpp,CMakeLists.txt} \
+		"${dir}"
 
 	sed -i \
-		-e "s/@PROBLEM@/${problem_name}/g" \
+		-e "s/@PROBLEM@/${PROBLEM_NAME}/g" \
 		-e "s|@URL@|${problem_url}|g" \
 		"${dir}"/*
-
-	exit 0
 }
 
 run()
 {
-	usage()
-	{
-		usage_subcommand_header "run"
-		usage_new_menu "Subcommand options"
-		usage_new_option "-h" "--help" "Prints this message"
-		usage_new_option "-p" "--problem" "Overrides the default problem name"
-	}
+	local -r source_dir="${WORKING_DIR}/${PROBLEM_NAME}"
+	local -r build_dir="${WORKING_DIR}/${PROBLEM_NAME}/build"
 
-	local problem_name="$(basename "${PWD}")"
+	cmake -B "${build_dir}" -G Ninja -S "${source_dir}"
+	ninja -C "${build_dir}" -j $((nproc + 1))
+
+	info_in_square "Starting ${PROBLEM_NAME}…"
+
+	exec "${build_dir}/problem"
+}
+
+main()
+{
+	trap 'die $? ${LINENO}' ERR
+
+	PROBLEM_NAME="$(basename "${PWD}")"
+	WITH_COLOR="auto"
+	WORKING_DIR="${EXE_DIR}"
 
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
@@ -374,72 +359,62 @@ run()
 				usage
 				exit 0
 			;;
+			-c|--color)
+				shift
+				WITH_COLOR="$1"
+			;;
 			-p|--problem)
 				shift
-				problem_name="$1"
+				PROBLEM_NAME="$1"
+
+				[[ -z "${PROBLEM_NAME}" ]] \
+					&& die 2 ${LINENO} "The problem name cannot be empty"
+			;;
+			-w|--working-dir)
+				shift
+				WORKING_DIR="$1"
+
+				[[ -z "${WORKING_DIR}" ]] \
+					&& die 2 ${LINENO} "The working directory cannot be empty"
+			;;
+			-*)
+				bad_option ${LINENO} "$1"
 			;;
 			*)
-				die "'$1' is not a valid option"
+				break
 			;;
 		esac
 
 		shift
 	done
 
-	[[ -z "${problem_name}" ]] && die "The problem name cannot be empty"
-
-	local -r source_dir="${EXE_DIR}/${problem_name}"
-	local -r build_dir="${EXE_DIR}/${problem_name}/build"
-
-	cmake -B "${build_dir}" -G Ninja -S "${source_dir}"
-	ninja -C "${build_dir}" -j"$((nproc + 1))"
-
-	info_in_square "Starting ${problem_name}…"
-
-	exec "${EXE_DIR}/${problem_name}/build/problem"
-}
-
-if [[ $# -eq 0 ]]; then
-	usage
-	exit 0
-fi
-
-while [[ $# -gt 0 ]]; do
-	case "$1" in
-		-h|--help)
-			usage
-			exit 0
+	case "${WITH_COLOR}" in
+		always)
 		;;
-		clean)
-			shift
-			clean "$@"
+		auto)
+			[[ -t 1 ]] || unset COLOR
 		;;
-		commit)
-			shift
-			commit "$@"
-		;;
-		copy)
-			shift
-			copy "$@"
-		;;
-		evalenv)
-			evalenv
-		;;
-		init)
-			shift
-			init "$@"
-		;;
-		run)
-			shift
-			run "$@"
-		;;
-		-*)
-			die "'$1' is not a valid option"
+		none)
+			unset COLOR
 		;;
 		*)
-			die "'$1' is not a valid subcommand"
+			bad_option ${LINENO} "$1"
 		;;
 	esac
 
+	local -r subcommands=(clean commit copy evalenv init run)
+
+	subcommand="$1"
 	shift
-done
+
+	if [[ "${subcommands[*]}" =~ "${subcommand}" ]]; then
+		eval "${subcommand} $@"
+		exit 0
+	else
+		die 2 ${LINENO} "'${subcommand}' is not a valid subcommand"
+	fi
+
+	usage
+}
+
+main "$@"
