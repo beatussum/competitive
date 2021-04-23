@@ -193,7 +193,7 @@ clean()
 
 	local -r build_dir="${WORKING_DIR}/${PROBLEM_NAME}/build"
 
-	if [[ "${all}" = true ]]; then
+	if [[ ${all} = true ]]; then
 		for p in $(find "${WORKING_DIR}" -mindepth 1 -maxdepth 1 -type d ! -path "*/\.*" ! -name "templates"); do
 			PROBLEM_NAME="$(basename "${p}")" clean
 		done; unset p
@@ -246,7 +246,7 @@ copy()
 
 	info "Copying '${file}' into the clipboard…"
 
-	if [[ "${uri}" = true ]]; then
+	if [[ ${uri} = true ]]; then
 		xclip -selection clipboard -t text/uri-list <<< "file://${file}"
 	else
 		xclip -selection clipboard "${file}"
@@ -268,7 +268,7 @@ init()
 {
 	usage()
 	{
-		usage_subcommand_header "init" "problem name"
+		usage_subcommand_header "init"
 		usage_new_option "-u" "--url" "Sets the problem url" "url"
 	}
 
@@ -327,6 +327,35 @@ init()
 
 run()
 {
+	usage()
+	{
+		usage_subcommand_header "run"
+		usage_new_option "-r" "--rebuild" "Cleans before rebuilding"
+
+	}
+
+	local -r rebuild=false
+
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+			-h|--help)
+				usage
+				exit 0
+			;;
+			-r|--rebuild)
+				shift
+				rebuild=true
+			;;
+			*)
+				bad_option ${LINENO} "$1"
+			;;
+		esac
+
+		shift
+	done
+
+	[[ ${rebuild} = true ]] && clean
+
 	local -r source_dir="${WORKING_DIR}/${PROBLEM_NAME}"
 	local -r build_dir="${WORKING_DIR}/${PROBLEM_NAME}/build"
 
