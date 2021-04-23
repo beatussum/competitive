@@ -195,13 +195,13 @@ clean()
 
 	if [[ "${all}" = true ]]; then
 		for p in $(find "${WORKING_DIR}" -mindepth 1 -maxdepth 1 -type d ! -path "*/\.*" ! -name "templates"); do
-			clean -p "$(basename "${p}")"
+			PROBLEM_NAME="$(basename "${p}")" clean
 		done; unset p
 	elif [[ -d "${build_dir}" ]]; then
 		info "Cleaning ${PROBLEM_NAME}…"
 		rm -fr "${build_dir}"
 	else
-		info "${build_dir} is already cleaned!"
+		info "${PROBLEM_NAME} is already cleaned!"
 	fi
 }
 
@@ -269,15 +269,10 @@ init()
 	usage()
 	{
 		usage_subcommand_header "init" "problem name"
-		usage_new_option "-u" "--url" "Sets the problem url"
+		usage_new_option "-u" "--url" "Sets the problem url" "url"
 	}
 
 	local platform="codeforces" problem_url
-
-	if [[ $# -eq 0 ]]; then
-		usage
-		exit 0
-	fi
 
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
@@ -318,8 +313,6 @@ init()
 			die "'$1' is an unknown platform"
 		;;
 	esac
-
-	[[ -z "${PROBLEM_NAME}" ]] && die "The problem name cannot be empty"
 
 	install -dm755 "${PROBLEM_NAME}/"
 
@@ -366,16 +359,10 @@ main()
 			-p|--problem)
 				shift
 				PROBLEM_NAME="$1"
-
-				[[ -z "${PROBLEM_NAME}" ]] \
-					&& die 2 ${LINENO} "The problem name cannot be empty"
 			;;
 			-w|--working-dir)
 				shift
 				WORKING_DIR="$1"
-
-				[[ -z "${WORKING_DIR}" ]] \
-					&& die 2 ${LINENO} "The working directory cannot be empty"
 			;;
 			-*)
 				bad_option ${LINENO} "$1"
@@ -402,19 +389,28 @@ main()
 		;;
 	esac
 
+	[[ -z "${PROBLEM_NAME}" ]] \
+		&& die 2 ${LINENO} "The problem name cannot be empty"
+
+	[[ -z "${WORKING_DIR}" ]] \
+		&& die 2 ${LINENO} "The working directory cannot be empty"
+
+	if [[ $# -eq 0 ]]; then
+		usage
+		exit 0
+	fi
+
 	local -r subcommands=(clean commit copy evalenv init run)
 
 	subcommand="$1"
 	shift
 
-	if [[ "${subcommands[*]}" =~ "${subcommand}" ]]; then
+	if [[ "${subcommands[*]}" = *"${subcommand}"* ]]; then
 		eval "${subcommand} $@"
 		exit 0
 	else
 		die 2 ${LINENO} "'${subcommand}' is not a valid subcommand"
 	fi
-
-	usage
 }
 
 main "$@"
