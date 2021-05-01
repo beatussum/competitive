@@ -3,26 +3,67 @@
 
 namespace me
 {
-    template <class _Integer>
+    template <typename _Integer0>
     class IntegerWrapper
     {
-        static_assert(std::is_integral_v<_Integer>);
+        static_assert(std::is_integral_v<_Integer0>);
+
+    public:
+        using underlying_type = _Integer0;
     public:
         constexpr IntegerWrapper() noexcept = default;
 
-        constexpr IntegerWrapper(const _Integer __i) noexcept
+        constexpr IntegerWrapper(const _Integer0 __i) noexcept
             : m_integer_(__i)
         {}
 
-        constexpr operator _Integer() const noexcept { return m_integer_; }
+        template <typename _Integer1>
+        constexpr operator IntegerWrapper<_Integer1>() noexcept { return m_integer_; }
+
+        constexpr operator _Integer0() const noexcept { return m_integer_; }
+    public:
+        constexpr IntegerWrapper operator+=(const _Integer0 __r) noexcept
+            { return m_integer_ += __r; }
+
+        constexpr IntegerWrapper operator-=(const _Integer0 __r) noexcept
+            { return m_integer_ -= __r; }
+
+        constexpr IntegerWrapper operator*=(const _Integer0 __r) noexcept
+            { return m_integer_ *= __r; }
+
+        constexpr IntegerWrapper operator/=(const _Integer0 __r) noexcept
+            { return m_integer_ /= __r; }
+
+        constexpr IntegerWrapper operator%=(const _Integer0 __r) noexcept
+            { return m_integer_ %= __r; }
+
+        constexpr IntegerWrapper operator&=(const _Integer0 __r) noexcept
+            { return m_integer_ &= __r; }
+
+        constexpr IntegerWrapper operator|=(const _Integer0 __r) noexcept
+            { return m_integer_ |= __r; }
+
+        constexpr IntegerWrapper operator^=(const _Integer0 __r) noexcept
+            { return m_integer_ ^= __r; }
+
+        constexpr IntegerWrapper operator<<=(const _Integer0 __r) noexcept
+            { return m_integer_ <<= __r; }
+
+        constexpr IntegerWrapper operator>>=(const _Integer0 __r) noexcept
+            { return m_integer_ >>= __r; }
+
+        constexpr IntegerWrapper operator++() noexcept { return ++m_integer_; }
+        constexpr IntegerWrapper operator--() noexcept { return --m_integer_; }
+        constexpr IntegerWrapper operator++(int) noexcept { return m_integer_++; }
+        constexpr IntegerWrapper operator--(int) noexcept { return m_integer_--; }
     private:
-        _Integer m_integer_;
+        _Integer0 m_integer_;
     };
 
     using int8_t = IntegerWrapper<std::int8_t>;
     using uint8_t = IntegerWrapper<std::uint8_t>;
 
-    template <class _CharT, class _Traits, class _Integer>
+    template <class _CharT, class _Traits, typename _Integer>
     std::basic_ostream<_CharT, _Traits>&
     operator<<(std::basic_ostream<_CharT, _Traits>& __o, IntegerWrapper<_Integer> __n)
     {
@@ -35,7 +76,7 @@ namespace me
         }
     }
 
-    template <class _CharT, class _Traits, class _Integer>
+    template <class _CharT, class _Traits, typename _Integer>
     std::basic_istream<_CharT, _Traits>&
     operator>>(std::basic_istream<_CharT, _Traits>& __i, IntegerWrapper<_Integer>& __n)
     {
@@ -77,6 +118,11 @@ namespace me
         return __i;
     }
 }
+
+template <typename _Integer>
+class std::numeric_limits<me::IntegerWrapper<_Integer>>
+    : public std::numeric_limits<_Integer>
+{};
 
 int main()
 {
