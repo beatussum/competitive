@@ -96,15 +96,15 @@ usage_new_subcommand()
 
 parse_option_arguments()
 {
-	for i; do
-		if [[ "${i[1]}" = "o" ]]; then
-			printf "[%s]" "${i#o}"
-		elif [[ -n "${i}" ]]; then
-			printf "<%s>" "${i}"
-		fi
+   for i; do
+	   if [[ "${i[1]}" = "o" ]]; then
+		   printf "[%s]" "${i#o}"
+	   elif [[ -n "${i}" ]]; then
+		   printf "<%s>" "${i}"
+	   fi
 
-		printf " "
-	done; unset i
+	   printf " "
+   done; unset i
 }
 
 usage_new_option()
@@ -112,10 +112,10 @@ usage_new_option()
 	local -r option="$1"
 	local -r long_option="$2"
 	local -r desc="$3"
-	local -r argument="$4"
+	local -r arguments="$4"
 
-	printf "  %-40b ${COLOR[bred]}:${COLOR[off]} %s\n" \
-		"${COLOR[bold]}${option}, ${long_option}${COLOR[off]} ${COLOR[bgreen]}$(parse_option_arguments "${argument}")${COLOR[off]}" \
+	printf "  %-55b ${COLOR[bred]}:${COLOR[off]} %s\n" \
+		"${COLOR[bold]}${option}, ${long_option}${COLOR[off]} ${COLOR[bgreen]}$(parse_option_arguments "${arguments}")${COLOR[off]}" \
 		"${desc}"
 }
 
@@ -157,8 +157,7 @@ usage_subcommand_header()
 	printf "${COLOR[byellow]}${EXE_NAME}${COLOR[off]} "
 	printf "${COLOR[bold]}[options]${COLOR[off]} "
 	printf "${COLOR[byellow]}${header}${COLOR[off]} "
-	printf "${COLOR[bold]}[subcommand options]${COLOR[off]} "
-	printf "${COLOR[bold]}$(parse_option_arguments "${args[@]}")${COLOR[off]}\n\n"
+	printf "${COLOR[bold]}[subcommand options]${COLOR[off]}\n\n"
 
 	usage_new_menu "Subcommand options"
 	usage_new_option "-h" "--help" "Prints this message"
@@ -330,11 +329,11 @@ run()
 	usage()
 	{
 		usage_subcommand_header "run"
+		usage_new_option "-c" "--from-clipboard" "Reads input from the clipboard"
 		usage_new_option "-r" "--rebuild" "Cleans before rebuilding"
-
 	}
 
-	local -r rebuild=false
+	local clipboard=false rebuild=false
 
 	while [[ $# -gt 0 ]]; do
 		case "$1" in
@@ -342,8 +341,10 @@ run()
 				usage
 				exit 0
 			;;
+			-c|--from-clipboard)
+				clipboard=true
+			;;
 			-r|--rebuild)
-				shift
 				rebuild=true
 			;;
 			*)
@@ -362,9 +363,13 @@ run()
 	cmake -B "${build_dir}" -G Ninja -S "${source_dir}"
 	ninja -C "${build_dir}" -j $((nproc + 1))
 
-	info_in_square "Starting ${PROBLEM_NAME}…"
-
-	exec "${build_dir}/problem"
+	if [[ "${clipboard}" = true ]]; then
+		info_in_square "Starting ${PROBLEM_NAME} (reading input from the clipboard)…"
+		xclip -selection clipboard -o | exec "${build_dir}/problem"
+	else
+		info_in_square "Starting ${PROBLEM_NAME}…"
+		exec "${build_dir}/problem"
+	fi
 }
 
 main()
