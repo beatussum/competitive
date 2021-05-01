@@ -1,6 +1,8 @@
 #include <iostream>
 #include <limits>
 
+// BEGIN: some custom utilities
+
 namespace me
 {
     template <typename _Integer0>
@@ -122,7 +124,39 @@ namespace me
 template <typename _Integer>
 class std::numeric_limits<me::IntegerWrapper<_Integer>>
     : public std::numeric_limits<_Integer>
-{};
+{
+private:
+    using _base_t = std::numeric_limits<_Integer>;
+public:
+    static constexpr me::IntegerWrapper<_Integer> min() noexcept
+        { return _base_t::min(); }
+
+    static constexpr me::IntegerWrapper<_Integer> max() noexcept
+        { return _base_t::max(); }
+
+    static constexpr me::IntegerWrapper<_Integer> lowest() noexcept
+        { return _base_t::lowest(); }
+
+    static constexpr me::IntegerWrapper<_Integer> epsilon() noexcept
+        { return _base_t::epsilon(); }
+
+    static constexpr me::IntegerWrapper<_Integer> round_error() noexcept
+        { return _base_t::round_error(); }
+
+    static constexpr me::IntegerWrapper<_Integer> infinity() noexcept
+        { return _base_t::infinity(); }
+
+    static constexpr me::IntegerWrapper<_Integer> quiet_NaN() noexcept
+        { return _base_t::quiet_NaN(); }
+
+    static constexpr me::IntegerWrapper<_Integer> signaling_NaN() noexcept
+        { return _base_t::signaling_NaN(); }
+
+    static constexpr me::IntegerWrapper<_Integer> denorm_min() noexcept
+        { return _base_t::denorm_min(); }
+};
+
+// END
 
 int main()
 {
