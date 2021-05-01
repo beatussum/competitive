@@ -64,6 +64,8 @@ namespace me
 
     using int8_t = IntegerWrapper<std::int8_t>;
     using uint8_t = IntegerWrapper<std::uint8_t>;
+    using int_fast8_t = IntegerWrapper<std::int_fast8_t>;
+    using uint_fast8_t = IntegerWrapper<std::uint_fast8_t>;
 
     template <class _CharT, class _Traits, typename _Integer>
     std::basic_ostream<_CharT, _Traits>&
