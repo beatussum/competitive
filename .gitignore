@@ -17,8 +17,8 @@
 build/
 
 # Visual Studio Code
-/.vscode/
+.vscode/
 
 # KDevelop
-/.kdev4/
-/competitive.kdev4
+.kdev4/
+*.kdev4
