@@ -67,6 +67,29 @@ namespace me
     using int_fast8_t = IntegerWrapper<std::int_fast8_t>;
     using uint_fast8_t = IntegerWrapper<std::uint_fast8_t>;
 
+    namespace literals
+    {
+        constexpr me::int8_t operator ""_i8(unsigned long long __l) noexcept { return __l; }
+        constexpr me::uint8_t operator ""_ui8(unsigned long long __l) noexcept { return __l; }
+        constexpr me::int_fast8_t operator ""_if8(unsigned long long __l) noexcept { return __l; }
+        constexpr me::uint_fast8_t operator ""_uif8(unsigned long long __l) noexcept { return __l; }
+
+        constexpr std::int16_t operator ""_i16(unsigned long long __l) noexcept { return __l; }
+        constexpr std::uint16_t operator ""_ui16(unsigned long long __l) noexcept { return __l; }
+        constexpr std::int_fast16_t operator ""_if16(unsigned long long __l) noexcept { return __l; }
+        constexpr std::uint_fast16_t operator ""_uif16(unsigned long long __l) noexcept { return __l; }
+
+        constexpr std::int32_t operator ""_i32(unsigned long long __l) noexcept { return __l; }
+        constexpr std::uint32_t operator ""_ui32(unsigned long long __l) noexcept { return __l; }
+        constexpr std::int_fast32_t operator ""_if32(unsigned long long __l) noexcept { return __l; }
+        constexpr std::uint_fast32_t operator ""_uif32(unsigned long long __l) noexcept { return __l; }
+
+        constexpr std::int64_t operator ""_i64(unsigned long long __l) noexcept { return __l; }
+        constexpr std::uint64_t operator ""_ui64(unsigned long long __l) noexcept { return __l; }
+        constexpr std::int_fast64_t operator ""_if64(unsigned long long __l) noexcept { return __l; }
+        constexpr std::uint_fast64_t operator ""_uif64(unsigned long long __l) noexcept { return __l; }
+    }
+
     template <class _CharT, class _Traits, typename _Integer>
     std::basic_ostream<_CharT, _Traits>&
     operator<<(std::basic_ostream<_CharT, _Traits>& __o, IntegerWrapper<_Integer> __n)
@@ -157,6 +180,8 @@ public:
     static constexpr me::IntegerWrapper<_Integer> denorm_min() noexcept
         { return _base_t::denorm_min(); }
 };
+
+using namespace me::literals;
 
 // END
 
