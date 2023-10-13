@@ -29,6 +29,18 @@ declare -A COLOR=(
 readonly EXE_DIR="$(dirname "$(realpath "$0")")"
 readonly EXE_NAME="$(basename "$0")"
 
+case "${XDG_SESSION_TYPE}" in
+	"x11")
+		COPY_PROGRAM="xclip -selection clipboard"
+		PASTE_PROGRAM="xclip -selection clipboard -o"
+		;;
+
+	"wayland")
+		COPY_PROGRAM="wl-copy"
+		PASTE_PROGRAM="wl-paste"
+		;;
+esac
+
 set -e
 
 info()
@@ -246,9 +258,9 @@ copy()
 	info "Copying '${file}' into the clipboard…"
 
 	if [[ ${uri} = true ]]; then
-		xclip -selection clipboard -t text/uri-list <<< "file://${file}"
+		${COPY_PROGRAM} -t text/uri-list <<< "file://${file}"
 	else
-		xclip -selection clipboard "${file}"
+		${COPY_PROGRAM} < "${file}"
 	fi
 }
 
@@ -365,7 +377,7 @@ run()
 
 	if [[ "${clipboard}" = true ]]; then
 		info_in_square "Starting ${PROBLEM_NAME} (reading input from the clipboard)…"
-		xclip -selection clipboard -o | exec "${build_dir}/problem"
+		${PASTE_PROGRAM} | exec "${build_dir}/problem"
 	else
 		info_in_square "Starting ${PROBLEM_NAME}…"
 		exec "${build_dir}/problem"
