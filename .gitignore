@@ -16,9 +16,13 @@
 
 build/
 
-# Visual Studio Code
-.vscode/
+# Rust
+target/
 
 # KDevelop
 .kdev4/
 *.kdev4
+
+# Visual Studio Code
+.vscode/
+
