@@ -1,0 +1,4 @@
+[package]
+name = "vlad_and_a_sum_of_sum_of_digits"
+version = "0.1.0"
+edition = "2021"
