@@ -36,6 +36,30 @@ fn solve(ps: &[bool]) -> bool {
     dp[0][1]
 }
 
+#[cfg(feature = "par")]
+fn solve(ps: &[bool]) -> bool {
+    use rayon::prelude::*;
+    use std::{collections::HashMap, sync::RwLock};
+
+    let dp = HashMap::<(usize, usize), RwLock<bool>>::from_par_iter(
+        (0..(ps.len()))
+            .into_par_iter()
+            .rev()
+            .flat_map(|p| (0..ps.len()).into_par_iter().map(move |s| (p, s)))
+            .map(|(p, s)| ((p, s), RwLock::new(p == ps.len() - 1))),
+    );
+
+    (0..(ps.len() - 1)).rev().filter(|p| ps[*p]).for_each(|p| {
+        (0..(ps.len() - p)).into_par_iter().for_each(|s| {
+            *dp.get(&(p, s)).unwrap().write().unwrap() =
+                *dp.get(&(p + s, s)).unwrap().read().unwrap()
+                    || *dp.get(&(p + s + 1, s + 1)).unwrap().read().unwrap();
+        })
+    });
+
+    *dp[&(0, 1)].read().unwrap()
+}
+
 fn main() {
     let mut input = String::new();
     std::io::stdin().read_line(&mut input).unwrap();
