@@ -9,7 +9,9 @@ fn phi(s: usize, pos: usize, ps: &[bool]) -> bool {
     (pos == ps.len() - 1)
         || (ps[pos + s] && phi(s, pos + s, ps))
         || ((s > 1) && ps[pos + s - 1] && phi(s - 1, pos + s - 1, ps))
-        || ((pos + s + 1 < ps.len()) && ps[pos + s + 1] && phi(s + 1, pos + s + 1, ps))
+        || ((pos + s + 1 < ps.len())
+            && ps[pos + s + 1]
+            && phi(s + 1, pos + s + 1, ps))
 }
 
 #[cfg(feature = "recursive")]
