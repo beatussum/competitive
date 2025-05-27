@@ -20,39 +20,34 @@ pub fn solve(positions: &[bool]) -> bool {
 }
 
 pub fn iterative_solve(positions: &[bool]) -> bool {
-    use std::cell::Cell;
-
     let len = positions.len();
 
-    let is_solvable_with = (0..len)
-        .map(|p| {
-            (0..len)
-                .map(|_| Cell::new(p == len - 1))
-                .collect::<Vec<_>>()
-        })
+    let mut is_solvable_with = (0..len)
+        .map(|p| (0..len).map(|_| p == len - 1).collect::<Vec<_>>())
         .collect::<Vec<_>>();
 
-    positions[..len - 1]
+    positions
         .iter()
         .copied()
-        .zip(is_solvable_with[..len - 1].iter())
         .enumerate()
         .rev()
-        .filter_map(|(i, (p, speeds_for_p))| {
-            Some((i, speeds_for_p)).filter(|_| p)
-        })
-        .for_each(|(p, speeds_for_p)| {
-            speeds_for_p[..len - p].iter().enumerate().for_each(
-                |(s, is_solvable)| {
-                    is_solvable.set(
-                        is_solvable_with[p + s][s].get()
-                            || is_solvable_with[p + s + 1][s + 1].get(),
-                    );
-                },
-            )
+        .skip(1)
+        .filter_map(|(i, has_stone)| Some(i).filter(|_| has_stone))
+        .for_each(|p| {
+            let (first_position, other_positions) =
+                is_solvable_with[p..].split_first_mut().unwrap();
+
+            first_position[..len - p]
+                .iter_mut()
+                .enumerate()
+                .skip(1)
+                .for_each(|(s, is_solvable)| {
+                    *is_solvable =
+                        other_positions[s - 1][s] || other_positions[s][s + 1];
+                });
         });
 
-    is_solvable_with[0][1].get()
+    is_solvable_with[0][1]
 }
 
 #[cfg(feature = "iterative")]
