@@ -5,18 +5,21 @@ fn parse<'a>(
 }
 
 #[cfg(feature = "recursive")]
-fn phi(s: usize, pos: usize, ps: &[bool]) -> bool {
-    (pos == ps.len() - 1)
-        || (ps[pos + s] && phi(s, pos + s, ps))
-        || ((s > 1) && ps[pos + s - 1] && phi(s - 1, pos + s - 1, ps))
-        || ((pos + s + 1 < ps.len())
-            && ps[pos + s + 1]
-            && phi(s + 1, pos + s + 1, ps))
+fn phi(speed: usize, position: usize, positions: &[bool]) -> bool {
+    (position == positions.len() - 1)
+        || (positions[position + speed]
+            && phi(speed, position + speed, positions))
+        || ((speed > 1)
+            && positions[position + speed - 1]
+            && phi(speed - 1, position + speed - 1, positions))
+        || ((position + speed + 1 < positions.len())
+            && positions[position + speed + 1]
+            && phi(speed + 1, position + speed + 1, positions))
 }
 
 #[cfg(feature = "recursive")]
-fn solve(ps: &[bool]) -> bool {
-    phi(1, 0, ps)
+fn solve(positions: &[bool]) -> bool {
+    phi(1, 0, positions)
 }
 
 #[cfg(feature = "iterative")]
