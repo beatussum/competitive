@@ -37,27 +37,43 @@ fn solve(ps: &[bool]) -> bool {
 }
 
 #[cfg(feature = "par")]
-fn solve(ps: &[bool]) -> bool {
+fn solve(positions: &[bool]) -> bool {
     use rayon::prelude::*;
-    use std::{collections::HashMap, sync::RwLock};
+    use std::sync::atomic::{AtomicBool, Ordering};
 
-    let dp = HashMap::<(usize, usize), RwLock<bool>>::from_par_iter(
-        (0..(ps.len()))
-            .into_par_iter()
-            .rev()
-            .flat_map(|p| (0..ps.len()).into_par_iter().map(move |s| (p, s)))
-            .map(|(p, s)| ((p, s), RwLock::new(p == ps.len() - 1))),
-    );
+    let len = positions.len();
 
-    (0..(ps.len() - 1)).rev().filter(|p| ps[*p]).for_each(|p| {
-        (0..(ps.len() - p)).into_par_iter().for_each(|s| {
-            *dp.get(&(p, s)).unwrap().write().unwrap() =
-                *dp.get(&(p + s, s)).unwrap().read().unwrap()
-                    || *dp.get(&(p + s + 1, s + 1)).unwrap().read().unwrap();
+    let is_solvable_with = (0..len)
+        .map(|p| {
+            (0..len)
+                .map(|_| AtomicBool::new(p == len - 1))
+                .collect::<Vec<_>>()
         })
-    });
+        .collect::<Vec<_>>();
 
-    *dp[&(0, 1)].read().unwrap()
+    positions[..len - 1]
+        .iter()
+        .copied()
+        .zip(is_solvable_with[..len - 1].iter())
+        .enumerate()
+        .rev()
+        .filter_map(|(i, (p, speeds_of_p))| {
+            Some((i, speeds_of_p)).filter(|_| p)
+        })
+        .for_each(|(p, speeds_of_p)| {
+            speeds_of_p[..len - p].into_par_iter().enumerate().for_each(
+                |(s, is_solvable)| {
+                    is_solvable.store(
+                        is_solvable_with[p + s][s].load(Ordering::Relaxed)
+                            || is_solvable_with[p + s + 1][s + 1]
+                                .load(Ordering::Relaxed),
+                        Ordering::Relaxed,
+                    );
+                },
+            )
+        });
+
+    is_solvable_with[0][1].load(Ordering::Relaxed)
 }
 
 fn main() {
