@@ -3,10 +3,18 @@ name = "frog_jump"
 version = "0.1.0"
 edition = "2024"
 
+[[bench]]
+name = "benches"
+harness = false
+
 [features]
+default = ["par"]
 iterative = []
-par = ["dep:rayon"]
+par = []
 recursive = []
 
 [dependencies]
-rayon = { optional = true, version = "1.10.0" }
+rayon = "1.10.0"
+
+[dev-dependencies]
+criterion = "0.6.0"
