@@ -20,20 +20,40 @@ fn solve(ps: &[bool]) -> bool {
 }
 
 #[cfg(feature = "iterative")]
-fn solve(ps: &[bool]) -> bool {
-    let mut dp = vec![vec![false; ps.len()]; ps.len()];
+fn solve(positions: &[bool]) -> bool {
+    use std::cell::Cell;
 
-    for s in 0..ps.len() {
-        dp.last_mut().unwrap()[s] = true;
-    }
+    let len = positions.len();
 
-    for p in (0..(ps.len() - 1)).rev() {
-        for s in 0..(ps.len() - p) {
-            dp[p][s] = ps[p] && (dp[p + s][s] || dp[p + s + 1][s + 1]);
-        }
-    }
+    let is_solvable_with = (0..len)
+        .map(|p| {
+            (0..len)
+                .map(|_| Cell::new(p == len - 1))
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
 
-    dp[0][1]
+    positions[..len - 1]
+        .iter()
+        .copied()
+        .zip(is_solvable_with[..len - 1].iter())
+        .enumerate()
+        .rev()
+        .filter_map(|(i, (p, speeds_for_p))| {
+            Some((i, speeds_for_p)).filter(|_| p)
+        })
+        .for_each(|(p, speeds_for_p)| {
+            speeds_for_p[..len - p].iter().enumerate().for_each(
+                |(s, is_solvable)| {
+                    is_solvable.set(
+                        is_solvable_with[p + s][s].get()
+                            || is_solvable_with[p + s + 1][s + 1].get(),
+                    );
+                },
+            )
+        });
+
+    is_solvable_with[0][1].get()
 }
 
 #[cfg(feature = "par")]
