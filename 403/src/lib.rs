@@ -1,22 +1,29 @@
-fn phi(speed: usize, position: usize, positions: &[bool]) -> bool {
-    (position == positions.len() - 1)
-        || (positions[position + speed]
-            && phi(speed, position + speed, positions))
-        || ((speed > 1)
-            && positions[position + speed - 1]
-            && phi(speed - 1, position + speed - 1, positions))
-        || ((position + speed + 1 < positions.len())
-            && positions[position + speed + 1]
-            && phi(speed + 1, position + speed + 1, positions))
+pub fn dfs_solve(positions: &[bool]) -> bool {
+    let len = positions.len();
+    let mut stack = vec![(0, 1)];
+
+    while !stack.is_empty() && (stack.last().unwrap().0 != len - 1) {
+        let (p, s) = stack.pop().unwrap();
+
+        if (p + s + 1 < len) && positions[p + s + 1] {
+            stack.push((p + s + 1, s + 1));
+        }
+
+        if (s > 1) && positions[p + s - 1] {
+            stack.push((p + s - 1, s - 1));
+        }
+
+        if positions[p + s] {
+            stack.push((p + s, s));
+        }
+    }
+
+    !stack.is_empty()
 }
 
-pub fn recursive_solve(positions: &[bool]) -> bool {
-    phi(1, 0, positions)
-}
-
-#[cfg(feature = "recursive")]
+#[cfg(feature = "dfs")]
 pub fn solve(positions: &[bool]) -> bool {
-    recursive_solve(positions)
+    dfs_solve(positions)
 }
 
 pub fn iterative_solve(positions: &[bool]) -> bool {
@@ -91,4 +98,25 @@ pub fn par_solve(positions: &[bool]) -> bool {
 #[cfg(feature = "par")]
 pub fn solve(positions: &[bool]) -> bool {
     par_solve(positions)
+}
+
+fn phi(speed: usize, position: usize, positions: &[bool]) -> bool {
+    (position == positions.len() - 1)
+        || (positions[position + speed]
+            && phi(speed, position + speed, positions))
+        || ((speed > 1)
+            && positions[position + speed - 1]
+            && phi(speed - 1, position + speed - 1, positions))
+        || ((position + speed + 1 < positions.len())
+            && positions[position + speed + 1]
+            && phi(speed + 1, position + speed + 1, positions))
+}
+
+pub fn recursive_solve(positions: &[bool]) -> bool {
+    phi(1, 0, positions)
+}
+
+#[cfg(feature = "recursive")]
+pub fn solve(positions: &[bool]) -> bool {
+    recursive_solve(positions)
 }

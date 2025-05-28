@@ -8,6 +8,7 @@ name = "benches"
 harness = false
 
 [features]
+dfs = []
 iterative = []
 par = []
 recursive = []

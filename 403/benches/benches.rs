@@ -1,5 +1,5 @@
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
-use frog_jump::{iterative_solve, par_solve, recursive_solve};
+use frog_jump::{dfs_solve, iterative_solve, par_solve, recursive_solve};
 
 pub fn bench(c: &mut Criterion) {
     rayon::ThreadPoolBuilder::new()
@@ -9,7 +9,8 @@ pub fn bench(c: &mut Criterion) {
 
     const SIZE: usize = 4_096;
 
-    let callees: [(_, fn(_) -> _); 3] = [
+    let callees: [(_, fn(_) -> _); 4] = [
+        ("dfs", dfs_solve),
         ("iterative", iterative_solve),
         ("par", par_solve),
         ("recursive", recursive_solve),
