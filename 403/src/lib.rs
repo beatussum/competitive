@@ -1,20 +1,34 @@
 pub fn dfs_solve(positions: &[bool]) -> bool {
+    use std::collections::HashSet;
+
     let len = positions.len();
+
+    let mut is_visited = HashSet::new();
     let mut stack = vec![(0, 1)];
 
     while !stack.is_empty() && (stack.last().unwrap().0 != len - 1) {
         let (p, s) = stack.pop().unwrap();
 
-        if (p + s + 1 < len) && positions[p + s + 1] {
-            stack.push((p + s + 1, s + 1));
-        }
+        if !is_visited.contains(&(p, s)) {
+            is_visited.insert((p, s));
 
-        if (s > 1) && positions[p + s - 1] {
-            stack.push((p + s - 1, s - 1));
-        }
+            if !is_visited.contains(&(p + s + 1, s + 1))
+                && (p + s + 1 < len)
+                && positions[p + s + 1]
+            {
+                stack.push((p + s + 1, s + 1));
+            }
 
-        if positions[p + s] {
-            stack.push((p + s, s));
+            if !is_visited.contains(&(p + s - 1, s - 1))
+                && (s > 1)
+                && positions[p + s - 1]
+            {
+                stack.push((p + s - 1, s - 1));
+            }
+
+            if !is_visited.contains(&(p + s, s)) && positions[p + s] {
+                stack.push((p + s, s));
+            }
         }
     }
 
