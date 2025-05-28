@@ -1,3 +1,5 @@
+use std::iter::once;
+
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use frog_jump::{dfs_solve, iterative_solve, par_solve, recursive_solve};
 
@@ -7,7 +9,7 @@ pub fn bench(c: &mut Criterion) {
         .build_global()
         .unwrap();
 
-    const SIZE: usize = 4_096;
+    const SIZE: usize = 1_000_000;
 
     let callees: [(_, fn(_) -> _); 4] = [
         ("dfs", dfs_solve),
@@ -17,7 +19,7 @@ pub fn bench(c: &mut Criterion) {
     ];
 
     let mut group = c.benchmark_group("full of stones");
-    let input = [true; SIZE];
+    let input = vec![true; SIZE];
 
     for (name, callee) in callees.iter() {
         group.bench_with_input(
@@ -30,7 +32,7 @@ pub fn bench(c: &mut Criterion) {
     group.finish();
 
     let mut group = c.benchmark_group("no stones");
-    let input = [false; SIZE];
+    let input = vec![false; SIZE];
 
     for (name, callee) in callees.iter() {
         group.bench_with_input(
@@ -49,6 +51,27 @@ pub fn bench(c: &mut Criterion) {
         .into_iter()
         .cycle()
         .take(input.len() * SIZE)
+        .collect::<Vec<_>>();
+
+    for (name, callee) in callees.iter() {
+        group.bench_with_input(
+            BenchmarkId::from_parameter(name),
+            callee,
+            |b, callee| b.iter(|| callee(&input)),
+        );
+    }
+
+    group.finish();
+
+    let mut group = c.benchmark_group("bad alternative jumps");
+    let input = [true, false, true, false, true];
+
+    let input = input
+        .into_iter()
+        .cycle()
+        .take(input.len() * SIZE)
+        .chain([false].into_iter().cycle().take(input.len() * SIZE + 1))
+        .chain(once(true))
         .collect::<Vec<_>>();
 
     for (name, callee) in callees.iter() {
