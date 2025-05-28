@@ -46,12 +46,8 @@ pub fn bench(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("alternative jumps");
     let input = [true, false, true, false, true];
-
-    let input = input
-        .into_iter()
-        .cycle()
-        .take(input.len() * SIZE)
-        .collect::<Vec<_>>();
+    assert_eq!(SIZE % input.len(), 0);
+    let input = input.into_iter().cycle().take(SIZE).collect::<Vec<_>>();
 
     for (name, callee) in callees.iter() {
         group.bench_with_input(
@@ -65,13 +61,13 @@ pub fn bench(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("bad alternative jumps");
     let input = [true, false, true, false, true];
+    assert_eq!(SIZE % input.len(), 0);
 
     let input = input
         .into_iter()
         .cycle()
-        .take(input.len() * SIZE)
-        .chain([false].into_iter().cycle().take(input.len() * SIZE + 1))
-        .chain(once(true))
+        .take(SIZE)
+        .chain([false, false, false, true])
         .collect::<Vec<_>>();
 
     for (name, callee) in callees.iter() {
