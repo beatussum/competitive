@@ -94,14 +94,26 @@ pub fn par_solve(positions: &[bool]) -> bool {
             if let Some((first_position, other_positions)) =
                 is_solvable_with[p..].split_first_mut()
             {
-                first_position[..len - p]
-                    .par_iter_mut()
-                    .enumerate()
-                    .skip(1)
-                    .for_each(|(s, is_solvable)| {
-                        *is_solvable = other_positions[s - 1][s]
-                            || other_positions[s][s + 1];
-                    });
+                let speeds = &mut first_position[..len - p];
+
+                if speeds.len() > 500 {
+                    speeds
+                        .par_iter_mut()
+                        .enumerate()
+                        .skip(1)
+                        .with_min_len(200)
+                        .for_each(|(s, is_solvable)| {
+                            *is_solvable = other_positions[s - 1][s]
+                                || other_positions[s][s + 1];
+                        });
+                } else {
+                    speeds.iter_mut().enumerate().skip(1).for_each(
+                        |(s, is_solvable)| {
+                            *is_solvable = other_positions[s - 1][s]
+                                || other_positions[s][s + 1];
+                        },
+                    );
+                };
             }
         });
 
