@@ -6,29 +6,28 @@ pub fn dfs_solve(positions: &[bool]) -> bool {
     let mut is_visited = HashSet::new();
     let mut stack = vec![(0, 1)];
 
-    while !stack.is_empty() && (stack.last().unwrap().0 != len - 1) {
-        let (p, s) = stack.pop().unwrap();
+    while let Some((p, s)) = stack.pop() {
+        if p == len - 1 {
+            break;
+        }
 
         if !is_visited.contains(&(p, s)) {
             is_visited.insert((p, s));
 
-            if !is_visited.contains(&(p + s + 1, s + 1))
-                && (p + s + 1 < len)
-                && positions[p + s + 1]
-            {
-                stack.push((p + s + 1, s + 1));
-            }
+            let slow_speed = s - 1;
+            let large_speed = s + 1;
+            let large_position = p + large_speed;
 
-            if !is_visited.contains(&(p + s - 1, s - 1))
-                && (s > 1)
-                && positions[p + s - 1]
-            {
-                stack.push((p + s - 1, s - 1));
-            }
+            let to_visit = (large_position < len)
+                .then_some((large_position, large_speed))
+                .into_iter()
+                .chain((slow_speed > 1).then_some((p + slow_speed, slow_speed)))
+                .chain(Some((p + s, s)))
+                .filter(|all @ (next_p, _)| {
+                    !is_visited.contains(all) && positions[*next_p]
+                });
 
-            if !is_visited.contains(&(p + s, s)) && positions[p + s] {
-                stack.push((p + s, s));
-            }
+            stack.extend(to_visit)
         }
     }
 
@@ -52,20 +51,20 @@ pub fn iterative_solve(positions: &[bool]) -> bool {
         .copied()
         .enumerate()
         .rev()
-        .skip(1)
         .filter_map(|(i, has_stone)| Some(i).filter(|_| has_stone))
         .for_each(|p| {
-            let (first_position, other_positions) =
-                is_solvable_with[p..].split_first_mut().unwrap();
-
-            first_position[..len - p]
-                .iter_mut()
-                .enumerate()
-                .skip(1)
-                .for_each(|(s, is_solvable)| {
-                    *is_solvable =
-                        other_positions[s - 1][s] || other_positions[s][s + 1];
-                });
+            if let Some((first_position, other_positions)) =
+                is_solvable_with[p..].split_first_mut()
+            {
+                first_position[..len - p]
+                    .iter_mut()
+                    .enumerate()
+                    .skip(1)
+                    .for_each(|(s, is_solvable)| {
+                        *is_solvable = other_positions[s - 1][s]
+                            || other_positions[s][s + 1];
+                    });
+            }
         });
 
     is_solvable_with[0][1]
@@ -90,20 +89,20 @@ pub fn par_solve(positions: &[bool]) -> bool {
         .copied()
         .enumerate()
         .rev()
-        .skip(1)
         .filter_map(|(i, has_stone)| Some(i).filter(|_| has_stone))
         .for_each(|p| {
-            let (first_position, other_positions) =
-                is_solvable_with[p..].split_first_mut().unwrap();
-
-            first_position[..len - p]
-                .par_iter_mut()
-                .enumerate()
-                .skip(1)
-                .for_each(|(s, is_solvable)| {
-                    *is_solvable =
-                        other_positions[s - 1][s] || other_positions[s][s + 1];
-                });
+            if let Some((first_position, other_positions)) =
+                is_solvable_with[p..].split_first_mut()
+            {
+                first_position[..len - p]
+                    .par_iter_mut()
+                    .enumerate()
+                    .skip(1)
+                    .for_each(|(s, is_solvable)| {
+                        *is_solvable = other_positions[s - 1][s]
+                            || other_positions[s][s + 1];
+                    });
+            }
         });
 
     is_solvable_with[0][1]
