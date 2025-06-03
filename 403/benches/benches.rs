@@ -1,5 +1,8 @@
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
-use frog_jump::{dfs_solve, iterative_solve, par_solve, recursive_solve};
+
+use frog_jump::solve::{
+    dfs_solve, iterative_solve, par_solve, recursive_solve,
+};
 
 pub fn bench(c: &mut Criterion) {
     rayon::ThreadPoolBuilder::new()
