@@ -18,13 +18,14 @@ pub fn dfs_solve(positions: &[bool]) -> bool {
             let large_speed = s + 1;
             let large_position = p + large_speed;
 
-            let to_visit = (large_position < len)
-                .then_some((large_position, large_speed))
+            let to_visit = Some((large_position, large_speed))
                 .into_iter()
-                .chain((slow_speed > 1).then_some((p + slow_speed, slow_speed)))
+                .chain((slow_speed > 0).then_some((p + slow_speed, slow_speed)))
                 .chain(Some((p + s, s)))
                 .filter(|all @ (next_p, _)| {
-                    !is_visited.contains(all) && positions[*next_p]
+                    *next_p < len
+                        && !is_visited.contains(all)
+                        && positions[*next_p]
                 });
 
             stack.extend(to_visit)
