@@ -5,9 +5,8 @@ use rayon::iter::{
     },
 };
 
+use super::State;
 use scc::HashSet;
-
-type State = (usize, usize);
 
 pub struct StateIterator<'a> {
     root: State,

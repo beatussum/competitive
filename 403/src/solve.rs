@@ -1,7 +1,9 @@
-pub fn dfs_solve(positions: &[bool]) -> bool {
+use crate::Input;
+
+pub fn dfs_solve(input: Input) -> bool {
     use std::collections::HashSet;
 
-    let len = positions.len();
+    let len = input.len();
 
     let mut is_visited = HashSet::new();
     let mut stack = vec![(0, 1)];
@@ -22,10 +24,10 @@ pub fn dfs_solve(positions: &[bool]) -> bool {
                 .into_iter()
                 .chain((slow_speed > 0).then_some((p + slow_speed, slow_speed)))
                 .chain(Some((p + s, s)))
-                .filter(|all @ (next_p, _)| {
-                    *next_p < len
+                .filter(|all @ (position, _)| {
+                    *position < len
                         && !is_visited.contains(all)
-                        && positions[*next_p]
+                        && input.has_stone[*position]
                 });
 
             stack.extend(to_visit)
@@ -36,18 +38,19 @@ pub fn dfs_solve(positions: &[bool]) -> bool {
 }
 
 #[cfg(feature = "dfs")]
-pub fn solve(positions: &[bool]) -> bool {
-    dfs_solve(positions)
+pub fn solve(input: Input) -> bool {
+    dfs_solve(input)
 }
 
-pub fn iterative_solve(positions: &[bool]) -> bool {
-    let len = positions.len();
+pub fn iterative_solve(input: Input) -> bool {
+    let len = input.len();
 
     let mut is_solvable_with = (0..len)
         .map(|p| (0..len).map(|_| p == len - 1).collect::<Vec<_>>())
         .collect::<Vec<_>>();
 
-    positions
+    input
+        .has_stone
         .iter()
         .copied()
         .enumerate()
@@ -72,20 +75,21 @@ pub fn iterative_solve(positions: &[bool]) -> bool {
 }
 
 #[cfg(feature = "iterative")]
-pub fn solve(positions: &[bool]) -> bool {
-    iterative_solve(positions)
+pub fn solve(input: Input) -> bool {
+    iterative_solve(input)
 }
 
-pub fn par_solve(positions: &[bool]) -> bool {
+pub fn par_solve(input: Input) -> bool {
     use rayon::prelude::*;
 
-    let len = positions.len();
+    let len = input.len();
 
     let mut is_solvable_with = (0..len)
         .map(|p| (0..len).map(|_| p == len - 1).collect::<Vec<_>>())
         .collect::<Vec<_>>();
 
-    positions
+    input
+        .has_stone
         .iter()
         .copied()
         .enumerate()
@@ -122,41 +126,44 @@ pub fn par_solve(positions: &[bool]) -> bool {
 }
 
 #[cfg(feature = "par")]
-pub fn solve(positions: &[bool]) -> bool {
-    par_solve(positions)
+pub fn solve(input: Input) -> bool {
+    par_solve(input)
 }
 
-pub fn par_dfs_solve(positions: &[bool]) -> bool {
-    use crate::iterators::StateIterator;
+pub fn par_dfs_solve(input: Input) -> bool {
     use rayon::prelude::*;
 
-    StateIterator::new((0, 1), positions)
-        .find_any(|(position, _)| *position == positions.len() - 1)
+    let last = input.len() - 1;
+
+    input
+        .into_par_iter()
+        .find_any(|(position, _)| *position == last)
         .is_some()
 }
 
 #[cfg(feature = "par_dfs")]
-pub fn solve(positions: &[bool]) -> bool {
-    par_dfs_solve(positions)
+pub fn solve(input: Input) -> bool {
+    par_dfs_solve(input)
 }
 
-fn phi(speed: usize, position: usize, positions: &[bool]) -> bool {
-    (position == positions.len() - 1)
-        || (positions[position + speed]
-            && phi(speed, position + speed, positions))
+fn phi(position: usize, speed: usize, has_stone: &[bool]) -> bool {
+    (position == has_stone.len() - 1)
+        || (has_stone[position + speed]
+            && phi(position + speed, speed, has_stone))
         || ((speed > 1)
-            && positions[position + speed - 1]
-            && phi(speed - 1, position + speed - 1, positions))
-        || ((position + speed + 1 < positions.len())
-            && positions[position + speed + 1]
-            && phi(speed + 1, position + speed + 1, positions))
+            && has_stone[position + speed - 1]
+            && phi(position + speed - 1, speed - 1, has_stone))
+        || ((position + speed + 1 < has_stone.len())
+            && has_stone[position + speed + 1]
+            && phi(position + speed + 1, speed + 1, has_stone))
 }
 
-pub fn recursive_solve(positions: &[bool]) -> bool {
-    phi(1, 0, positions)
+pub fn recursive_solve(input: Input) -> bool {
+    let (p, s) = input.root;
+    phi(p, s, input.has_stone)
 }
 
 #[cfg(feature = "recursive")]
-pub fn solve(positions: &[bool]) -> bool {
-    recursive_solve(positions)
+pub fn solve(input: Input) -> bool {
+    recursive_solve(input)
 }
