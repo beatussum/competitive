@@ -128,20 +128,23 @@ impl UnindexedProducer for StateProducer<'_> {
                                 has_stone: self.has_stone,
                                 is_visited: self.is_visited,
                                 to_visit: One(*a),
-                                ancestors,
+                                ancestors: Vec::default(),
                             };
 
                             let right = Self {
                                 has_stone: self.has_stone,
                                 is_visited: self.is_visited,
                                 to_visit: Zero,
-                                ancestors: Vec::default(),
+                                ancestors,
                             };
 
                             (left, Some(right))
                         }
 
                         [a, b] => {
+                            let mid = ancestors.len() / 2;
+                            let right_ancestors = ancestors.split_off(mid);
+
                             let left = Self {
                                 has_stone: self.has_stone,
                                 is_visited: self.is_visited,
@@ -153,7 +156,7 @@ impl UnindexedProducer for StateProducer<'_> {
                                 has_stone: self.has_stone,
                                 is_visited: self.is_visited,
                                 to_visit: One(*b),
-                                ancestors: Vec::default(),
+                                ancestors: right_ancestors,
                             };
 
                             (left, Some(right))
@@ -164,14 +167,14 @@ impl UnindexedProducer for StateProducer<'_> {
                                 has_stone: self.has_stone,
                                 is_visited: self.is_visited,
                                 to_visit: One(*a),
-                                ancestors,
+                                ancestors: Vec::default(),
                             };
 
                             let right = Self {
                                 has_stone: self.has_stone,
                                 is_visited: self.is_visited,
                                 to_visit: Two(*b, *c),
-                                ancestors: Vec::default(),
+                                ancestors,
                             };
 
                             (left, Some(right))
@@ -183,18 +186,22 @@ impl UnindexedProducer for StateProducer<'_> {
             }
 
             Two(a, b) => {
+                let mut left_ancestors = self.ancestors;
+                let mid = left_ancestors.len();
+                let right_ancestors = left_ancestors.split_off(mid);
+
                 let left = Self {
                     has_stone: self.has_stone,
                     is_visited: self.is_visited,
                     to_visit: One(a),
-                    ancestors: self.ancestors,
+                    ancestors: left_ancestors,
                 };
 
                 let right = Self {
                     has_stone: self.has_stone,
                     is_visited: self.is_visited,
                     to_visit: One(b),
-                    ancestors: Vec::default(),
+                    ancestors: right_ancestors,
                 };
 
                 (left, Some(right))
