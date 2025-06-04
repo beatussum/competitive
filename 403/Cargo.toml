@@ -11,10 +11,12 @@ harness = false
 dfs = []
 iterative = []
 par = []
+par_dfs = []
 recursive = []
 
 [dependencies]
 rayon = "1.10.0"
+scc = "2.3.4"
 
 [dev-dependencies]
 criterion = "0.6.0"

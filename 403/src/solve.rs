@@ -125,6 +125,20 @@ pub fn solve(positions: &[bool]) -> bool {
     par_solve(positions)
 }
 
+pub fn par_dfs_solve(positions: &[bool]) -> bool {
+    use crate::iterators::StateIterator;
+    use rayon::iter::ParallelIterator;
+
+    StateIterator::new((0, 1), positions)
+        .find_any(|(position, _)| *position == positions.len() - 1)
+        .is_some()
+}
+
+#[cfg(feature = "par_dfs")]
+pub fn solve(positions: &[bool]) -> bool {
+    par_dfs_solve(positions)
+}
+
 fn phi(speed: usize, position: usize, positions: &[bool]) -> bool {
     (position == positions.len() - 1)
         || (positions[position + speed]

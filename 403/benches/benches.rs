@@ -1,7 +1,7 @@
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 
 use frog_jump::solve::{
-    dfs_solve, iterative_solve, par_solve, recursive_solve,
+    dfs_solve, iterative_solve, par_dfs_solve, par_solve, recursive_solve,
 };
 
 pub fn bench(c: &mut Criterion) {
@@ -12,10 +12,11 @@ pub fn bench(c: &mut Criterion) {
 
     const SIZE: usize = 1_000_000;
 
-    let callees: [(_, fn(_) -> _); 4] = [
+    let callees: [(_, fn(_) -> _); 5] = [
         ("dfs", dfs_solve),
         ("iterative", iterative_solve),
         ("par", par_solve),
+        ("dfs (par)", par_dfs_solve),
         ("recursive", recursive_solve),
     ];
 
