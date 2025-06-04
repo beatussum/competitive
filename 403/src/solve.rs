@@ -128,7 +128,7 @@ pub fn solve(positions: &[bool]) -> bool {
 
 pub fn par_dfs_solve(positions: &[bool]) -> bool {
     use crate::iterators::StateIterator;
-    use rayon::iter::ParallelIterator;
+    use rayon::prelude::*;
 
     StateIterator::new((0, 1), positions)
         .find_any(|(position, _)| *position == positions.len() - 1)

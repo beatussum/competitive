@@ -4,6 +4,7 @@ use rayon::iter::{
         Folder, UnindexedConsumer, UnindexedProducer, bridge_unindexed,
     },
 };
+
 use scc::HashSet;
 
 type State = (usize, usize);
@@ -31,39 +32,190 @@ impl ParallelIterator for StateIterator<'_> {
     where
         C: UnindexedConsumer<Self::Item>,
     {
+        use ToVisit::*;
+
         let producer = StateProducer {
             has_stone: &self.has_stone,
             is_visited: &self.is_visited,
-            to_visit: vec![self.root],
-            to_fold: Vec::default(),
+            to_visit: One(self.root),
+            ancestors: Vec::default(),
         };
 
         bridge_unindexed(producer, consumer)
     }
 }
 
+#[derive(Debug)]
+enum ToVisit {
+    Zero,
+    One(State),
+    Two(State, State),
+}
+
+impl Into<Vec<State>> for ToVisit {
+    fn into(self) -> Vec<State> {
+        use ToVisit::*;
+
+        match self {
+            Zero => Vec::default(),
+            One(a) => vec![a],
+            Two(a, b) => vec![a, b],
+        }
+    }
+}
+
 pub struct StateProducer<'a> {
     has_stone: &'a [bool],
     is_visited: &'a HashSet<State>,
-    to_visit: Vec<State>,
-    to_fold: Vec<State>,
+    to_visit: ToVisit,
+    ancestors: Vec<State>,
 }
 
 impl UnindexedProducer for StateProducer<'_> {
     type Item = State;
 
-    fn split(mut self) -> (Self, Option<Self>) {
-        let mut to_visit_left = self
-            .to_visit
-            .iter()
-            .copied()
-            .filter(|state| self.is_visited.insert(*state).is_ok())
-            .flat_map(|(p, s)| {
+    fn split(self) -> (Self, Option<Self>) {
+        use ToVisit::*;
+
+        match self.to_visit {
+            Zero => (self, None),
+
+            One(root @ (p, s)) => {
+                if self.is_visited.insert(root).is_err() {
+                    let left = Self {
+                        has_stone: self.has_stone,
+                        is_visited: self.is_visited,
+                        to_visit: Zero,
+                        ancestors: self.ancestors,
+                    };
+
+                    (left, None)
+                } else {
+                    let mut ancestors = self.ancestors;
+                    ancestors.push(root);
+
+                    let small_speed = s - 1;
+                    let big_speed = s + 1;
+                    let big_position = p + big_speed;
+
+                    let to_visit = Some((big_position, big_speed))
+                        .into_iter()
+                        .chain(
+                            (small_speed > 0)
+                                .then_some((p + small_speed, small_speed)),
+                        )
+                        .chain(Some((p + s, s)))
+                        .filter(|all @ (position, _)| {
+                            *position < self.has_stone.len()
+                                && !self.is_visited.contains(all)
+                                && self.has_stone[*position]
+                        })
+                        .collect::<Vec<_>>();
+
+                    match to_visit.as_slice() {
+                        [] => {
+                            let left = Self {
+                                has_stone: self.has_stone,
+                                is_visited: self.is_visited,
+                                to_visit: Zero,
+                                ancestors,
+                            };
+
+                            (left, None)
+                        }
+
+                        [a] => {
+                            let left = Self {
+                                has_stone: self.has_stone,
+                                is_visited: self.is_visited,
+                                to_visit: One(*a),
+                                ancestors,
+                            };
+
+                            let right = Self {
+                                has_stone: self.has_stone,
+                                is_visited: self.is_visited,
+                                to_visit: Zero,
+                                ancestors: Vec::default(),
+                            };
+
+                            (left, Some(right))
+                        }
+
+                        [a, b] => {
+                            let left = Self {
+                                has_stone: self.has_stone,
+                                is_visited: self.is_visited,
+                                to_visit: One(*a),
+                                ancestors,
+                            };
+
+                            let right = Self {
+                                has_stone: self.has_stone,
+                                is_visited: self.is_visited,
+                                to_visit: One(*b),
+                                ancestors: Vec::default(),
+                            };
+
+                            (left, Some(right))
+                        }
+
+                        [a, b, c] => {
+                            let left = Self {
+                                has_stone: self.has_stone,
+                                is_visited: self.is_visited,
+                                to_visit: One(*a),
+                                ancestors,
+                            };
+
+                            let right = Self {
+                                has_stone: self.has_stone,
+                                is_visited: self.is_visited,
+                                to_visit: Two(*b, *c),
+                                ancestors: Vec::default(),
+                            };
+
+                            (left, Some(right))
+                        }
+
+                        _ => unreachable!(),
+                    }
+                }
+            }
+
+            Two(a, b) => {
+                let left = Self {
+                    has_stone: self.has_stone,
+                    is_visited: self.is_visited,
+                    to_visit: One(a),
+                    ancestors: self.ancestors,
+                };
+
+                let right = Self {
+                    has_stone: self.has_stone,
+                    is_visited: self.is_visited,
+                    to_visit: One(b),
+                    ancestors: Vec::default(),
+                };
+
+                (left, Some(right))
+            }
+        }
+    }
+
+    fn fold_with<F>(self, mut folder: F) -> F
+    where
+        F: Folder<Self::Item>,
+    {
+        let mut to_visit: Vec<State> = self.to_visit.into();
+
+        while let Some(all @ (p, s)) = to_visit.pop() {
+            if self.is_visited.insert(all).is_ok() {
                 let small_speed = s - 1;
                 let big_speed = s + 1;
                 let big_position = p + big_speed;
 
-                Some((big_position, big_speed))
+                let extra = Some((big_position, big_speed))
                     .into_iter()
                     .chain(
                         (small_speed > 0)
@@ -74,67 +226,13 @@ impl UnindexedProducer for StateProducer<'_> {
                         *position < self.has_stone.len()
                             && !self.is_visited.contains(all)
                             && self.has_stone[*position]
-                    })
-            })
-            .collect::<Vec<_>>();
-
-        let mid = to_visit_left.len() / 2;
-        let to_visit_right = to_visit_left.split_off(mid);
-
-        self.to_fold.extend(self.to_visit);
-
-        let mid = self.to_fold.len() / 2;
-        let to_fold_right = self.to_fold.split_off(mid);
-
-        let left = Self {
-            has_stone: self.has_stone,
-            is_visited: self.is_visited,
-            to_visit: to_visit_left,
-            to_fold: self.to_fold,
-        };
-
-        let right = Self {
-            has_stone: self.has_stone,
-            is_visited: self.is_visited,
-            to_visit: to_visit_right,
-            to_fold: to_fold_right,
-        };
-
-        (
-            left,
-            (!right.to_visit.is_empty() || !right.to_fold.is_empty())
-                .then_some(right),
-        )
-    }
-
-    fn fold_with<F>(mut self, mut folder: F) -> F
-    where
-        F: Folder<Self::Item>,
-    {
-        while let Some(all @ (p, s)) = self.to_visit.pop() {
-            if self.is_visited.insert(all).is_ok() {
-                let small_speed = s - 1;
-                let big_speed = s + 1;
-                let big_position = p + big_speed;
-
-                let to_visit = Some((big_position, big_speed))
-                    .into_iter()
-                    .chain(
-                        (small_speed > 0)
-                            .then_some((p + small_speed, small_speed)),
-                    )
-                    .chain(Some((p + s, s)))
-                    .filter(|all @ (next_position, _)| {
-                        *next_position < self.has_stone.len()
-                            && !self.is_visited.contains(all)
-                            && self.has_stone[*next_position]
                     });
 
-                self.to_visit.extend(to_visit.clone());
-                folder = folder.consume_iter(to_visit);
+                to_visit.extend(extra.clone());
+                folder = folder.consume_iter(extra);
             }
         }
 
-        folder.consume_iter(self.to_fold)
+        folder.consume_iter(self.ancestors)
     }
 }
