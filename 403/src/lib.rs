@@ -8,6 +8,7 @@ pub use solve::solve;
 
 pub type State = (usize, usize);
 
+#[derive(Clone, Copy)]
 pub struct Input<'a> {
     has_stone: &'a [bool],
     root: State,
