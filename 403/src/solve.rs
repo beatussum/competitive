@@ -169,34 +169,28 @@ pub fn solve(input: Input) -> bool {
 }
 
 pub fn walk_tree_solve(input: Input) -> bool {
-    use either::Either::*;
-    use rayon::iter::{ParallelIterator, walk_tree};
+    use rayon::iter::walk_tree;
+    use rayon::prelude::*;
     use scc::HashSet;
-    use std::iter::empty;
 
     let is_visited = HashSet::new();
 
     walk_tree((0, 1), |&state @ (p, s)| {
-        if is_visited.insert(state).is_ok() {
-            let small_speed = s - 1;
-            let big_speed = s + 1;
-            let big_position = p + big_speed;
+        let is_not_visited = is_visited.insert(state).is_ok();
 
-            Left(
-                Some((big_position, big_speed))
-                    .into_iter()
-                    .chain(
-                        (small_speed > 0)
-                            .then_some((p + small_speed, small_speed)),
-                    )
-                    .chain(Some((p + s, s)))
-                    .filter(|(position, _)| {
-                        *position < input.len() && input.has_stone[*position]
-                    }),
-            )
-        } else {
-            Right(empty())
-        }
+        let small_speed = s - 1;
+        let big_speed = s + 1;
+        let big_position = p + big_speed;
+
+        Some((big_position, big_speed))
+            .into_iter()
+            .chain((small_speed > 0).then_some((p + small_speed, small_speed)))
+            .chain(Some((p + s, s)))
+            .filter(move |(position, _)| {
+                is_not_visited
+                    && (*position < input.len())
+                    && input.has_stone[*position]
+            })
     })
     .find_any(|(position, _)| *position == input.len() - 1)
     .is_some()
