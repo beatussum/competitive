@@ -217,30 +217,39 @@ impl UnindexedProducer for StateProducer<'_> {
     {
         let mut to_visit: Vec<State> = self.to_visit.into();
 
-        while let Some(all @ (p, s)) = to_visit.pop() {
-            if self.is_visited.insert(all).is_ok() {
-                let small_speed = s - 1;
-                let big_speed = s + 1;
-                let big_position = p + big_speed;
+        if folder.full() {
+            folder
+        } else {
+            while let Some(all @ (p, s)) = to_visit.pop() {
+                if self.is_visited.insert(all).is_ok() {
+                    let small_speed = s - 1;
+                    let big_speed = s + 1;
+                    let big_position = p + big_speed;
 
-                let extra = Some((big_position, big_speed))
-                    .into_iter()
-                    .chain(
-                        (small_speed > 0)
-                            .then_some((p + small_speed, small_speed)),
-                    )
-                    .chain(Some((p + s, s)))
-                    .filter(|all @ (position, _)| {
-                        *position < self.has_stone.len()
-                            && !self.is_visited.contains(all)
-                            && self.has_stone[*position]
-                    });
+                    let extra = Some((big_position, big_speed))
+                        .into_iter()
+                        .chain(
+                            (small_speed > 0)
+                                .then_some((p + small_speed, small_speed)),
+                        )
+                        .chain(Some((p + s, s)))
+                        .filter(|all @ (position, _)| {
+                            *position < self.has_stone.len()
+                                && !self.is_visited.contains(all)
+                                && self.has_stone[*position]
+                        });
 
-                to_visit.extend(extra.clone());
-                folder = folder.consume_iter(extra);
+                    folder = folder.consume_iter(extra.clone());
+
+                    if folder.full() {
+                        return folder;
+                    } else {
+                        to_visit.extend(extra);
+                    }
+                }
             }
-        }
 
-        folder.consume_iter(self.ancestors)
+            folder.consume_iter(self.ancestors)
+        }
     }
 }
