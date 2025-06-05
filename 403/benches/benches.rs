@@ -31,6 +31,8 @@ pub fn bench(c: &mut Criterion) {
     let has_stone = vec![true; SIZE];
     let input = Input::new(&has_stone, (0, 1));
 
+    group.throughput(Throughput::Elements(SIZE as u64));
+
     for (name, callee) in callees.iter() {
         group.bench_with_input(
             BenchmarkId::from_parameter(name),
@@ -44,6 +46,8 @@ pub fn bench(c: &mut Criterion) {
     let mut group = c.benchmark_group("no stones");
     let has_stone = vec![false; SIZE];
     let input = Input::new(&has_stone, (0, 1));
+
+    group.throughput(Throughput::Elements(SIZE as u64));
 
     for (name, callee) in callees.iter() {
         group.bench_with_input(
@@ -64,6 +68,8 @@ pub fn bench(c: &mut Criterion) {
         has_stone.into_iter().cycle().take(SIZE).collect::<Vec<_>>();
 
     let input = Input::new(&has_stone, (0, 1));
+
+    group.throughput(Throughput::Elements(SIZE as u64));
 
     for (name, callee) in callees.iter() {
         group.bench_with_input(
