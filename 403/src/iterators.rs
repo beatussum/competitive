@@ -97,7 +97,7 @@ impl UnindexedProducer for StateProducer<'_> {
                     let big_speed = s + 1;
                     let big_position = p + big_speed;
 
-                    let to_visit = Some((big_position, big_speed))
+                    let mut to_visit = Some((big_position, big_speed))
                         .into_iter()
                         .chain(
                             (small_speed > 0)
@@ -108,11 +108,13 @@ impl UnindexedProducer for StateProducer<'_> {
                             *position < self.has_stone.len()
                                 && !self.is_visited.contains(all)
                                 && self.has_stone[*position]
-                        })
-                        .collect::<Vec<_>>();
+                        });
 
-                    match to_visit.as_slice() {
-                        [] => {
+                    let to_visit =
+                        (to_visit.next(), to_visit.next(), to_visit.next());
+
+                    match to_visit {
+                        (None, None, None) => {
                             let left = Self {
                                 has_stone: self.has_stone,
                                 is_visited: self.is_visited,
@@ -123,11 +125,11 @@ impl UnindexedProducer for StateProducer<'_> {
                             (left, None)
                         }
 
-                        [a] => {
+                        (Some(a), None, None) => {
                             let left = Self {
                                 has_stone: self.has_stone,
                                 is_visited: self.is_visited,
-                                to_visit: One(*a),
+                                to_visit: One(a),
                                 ancestors: Vec::default(),
                             };
 
@@ -141,39 +143,39 @@ impl UnindexedProducer for StateProducer<'_> {
                             (left, Some(right))
                         }
 
-                        [a, b] => {
+                        (Some(a), Some(b), None) => {
                             let mid = ancestors.len() / 2;
                             let right_ancestors = ancestors.split_off(mid);
 
                             let left = Self {
                                 has_stone: self.has_stone,
                                 is_visited: self.is_visited,
-                                to_visit: One(*a),
+                                to_visit: One(a),
                                 ancestors,
                             };
 
                             let right = Self {
                                 has_stone: self.has_stone,
                                 is_visited: self.is_visited,
-                                to_visit: One(*b),
+                                to_visit: One(b),
                                 ancestors: right_ancestors,
                             };
 
                             (left, Some(right))
                         }
 
-                        [a, b, c] => {
+                        (Some(a), Some(b), Some(c)) => {
                             let left = Self {
                                 has_stone: self.has_stone,
                                 is_visited: self.is_visited,
-                                to_visit: One(*a),
+                                to_visit: One(a),
                                 ancestors: Vec::default(),
                             };
 
                             let right = Self {
                                 has_stone: self.has_stone,
                                 is_visited: self.is_visited,
-                                to_visit: Two(*b, *c),
+                                to_visit: Two(b, c),
                                 ancestors,
                             };
 
