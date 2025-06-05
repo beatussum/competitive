@@ -1,9 +1,12 @@
-use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use criterion::{
+    BenchmarkId, Criterion, Throughput, criterion_group, criterion_main,
+};
 
 use frog_jump::{
     Input,
     solve::{
         dfs_solve, iterative_solve, par_dfs_solve, par_solve, recursive_solve,
+        walk_tree_solve,
     },
 };
 
@@ -15,12 +18,13 @@ pub fn bench(c: &mut Criterion) {
 
     const SIZE: usize = 1_000_000;
 
-    let callees: [(_, fn(_) -> _); 5] = [
+    let callees: [(_, fn(_) -> _); 6] = [
         ("dfs", dfs_solve),
         ("iterative", iterative_solve),
         ("par", par_solve),
         ("dfs (par)", par_dfs_solve),
         ("recursive", recursive_solve),
+        ("walk tree", walk_tree_solve),
     ];
 
     let mut group = c.benchmark_group("full of stones");

@@ -13,8 +13,10 @@ iterative = []
 par = []
 par_dfs = []
 recursive = []
+walk_tree = []
 
 [dependencies]
+either = "1.15.0"
 rayon = "1.10.0"
 scc = "2.3.4"
 
