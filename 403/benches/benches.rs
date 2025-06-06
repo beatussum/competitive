@@ -1,21 +1,20 @@
-use std::{error::Error, fs::File, iter::once, path::Path};
+use std::{error::Error, fs::File, path::Path};
 
 use criterion::{
     BenchmarkId, Criterion, Throughput, criterion_group, criterion_main,
 };
 
 use frog_jump::{
-    Input,
+    Input, parse_input,
     solve::{
         dfs_solve, iterative_solve, par_dfs_solve, par_solve, recursive_solve,
         walk_tree_solve,
     },
 };
 
-use itertools::Itertools;
 use serde_json::{Map, Value};
 
-fn parse_input(filename: &str) -> Result<Vec<bool>, Box<dyn Error>> {
+fn parse_file(filename: &str) -> Result<Vec<bool>, Box<dyn Error>> {
     let path = format!(
         "{}/inputs/{}",
         Path::new(file!())
@@ -36,14 +35,9 @@ fn parse_input(filename: &str) -> Result<Vec<bool>, Box<dyn Error>> {
         .ok_or("`input` is not an array")?
         .into_iter()
         .filter_map(|index| index.as_u64())
-        .map(|index| index as usize)
-        .tuple_windows()
-        .map(|(a, b)| b - a - 1)
-        .flat_map(|prefix| once(false).cycle().take(prefix).chain(once(true)));
+        .map(|index| index as usize);
 
-    let input = once(true).chain(input).collect();
-
-    Ok(input)
+    Ok(parse_input(input))
 }
 
 pub fn bench(c: &mut Criterion) {
@@ -97,7 +91,7 @@ pub fn bench(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("trap");
 
-    let has_stone = parse_input("trap.json").unwrap();
+    let has_stone = parse_file("trap.json").unwrap();
     let input = Input::new(&has_stone, (0, 1));
 
     group.throughput(Throughput::Elements(has_stone.len() as u64));

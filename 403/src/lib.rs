@@ -41,3 +41,19 @@ impl<'a> IntoParallelRefIterator<'a> for Input<'a> {
         StateIterator::new(self.root, self.has_stone)
     }
 }
+
+pub fn parse_input<I>(input: I) -> Vec<bool>
+where
+    I: IntoIterator<Item = usize>,
+{
+    use itertools::Itertools;
+    use std::iter::once;
+
+    let input = input
+        .into_iter()
+        .tuple_windows()
+        .map(|(a, b)| b - a - 1)
+        .flat_map(|prefix| once(false).cycle().take(prefix).chain(once(true)));
+
+    once(true).chain(input).collect()
+}
