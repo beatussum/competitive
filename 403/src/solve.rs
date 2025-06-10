@@ -1,4 +1,8 @@
-use crate::Input;
+use std::cmp::min;
+
+use rayon::iter::IntoParallelIterator;
+
+use crate::{Input, State};
 
 pub fn dfs_solve(input: Input) -> bool {
     use std::collections::HashSet;
@@ -144,6 +148,86 @@ pub fn par_dfs_solve(input: Input) -> bool {
 #[cfg(feature = "par_dfs")]
 pub fn solve(input: Input) -> bool {
     par_dfs_solve(input)
+}
+
+pub fn par_dfs2_solve(input: Input) -> bool {
+    fn __solve(
+        input: Input,
+        max_depth: usize,
+        is_visited: &HashSet<State>,
+        len: usize,
+    ) -> Vec<State> {
+        let mut to_visit = vec![input.root];
+
+        for _ in 0..max_depth {
+            if let Some(all @ (p, s)) = to_visit.pop() {
+                if p == len - 1 {
+                    return vec![all];
+                } else if is_visited.insert(all).is_ok() {
+                    let small_speed = s - 1;
+                    let big_speed = s + 1;
+                    let big_position = p + big_speed;
+
+                    let next = Some((big_position, big_speed))
+                        .into_iter()
+                        .chain(
+                            (small_speed > 0)
+                                .then_some((p + small_speed, small_speed)),
+                        )
+                        .chain(Some((p + s, s)))
+                        .filter(|all @ (position, _)| {
+                            *position < len
+                                && !is_visited.contains(all)
+                                && input.has_stone[*position]
+                        });
+
+                    to_visit.extend(next)
+                }
+            }
+        }
+
+        to_visit
+    }
+
+    use rayon::prelude::*;
+    use scc::HashSet;
+
+    let len = input.len();
+
+    let max_depth = 5;
+    let max_task = rayon::current_num_threads() - 1;
+
+    let is_visited = HashSet::new();
+    let mut to_visit = vec![input.root];
+
+    while let Some(last @ (p, _)) = to_visit.pop() {
+        if p == len - 1 {
+            return true;
+        } else {
+            let last_next = __solve(
+                Input::new(input.has_stone, last),
+                max_depth,
+                &is_visited,
+                len,
+            );
+
+            let next = to_visit
+                .par_drain(0..min(max_task, to_visit.len()))
+                .map(|base| Input::new(input.has_stone, base))
+                .flat_map(|input| __solve(input, max_depth, &is_visited, len))
+                .collect::<Vec<_>>();
+
+            to_visit.extend(next);
+            to_visit.extend(last_next);
+        }
+    }
+
+    false
+}
+
+#[cfg(feature = "par_dfs2")]
+pub fn solve(input: Input) -> bool {
+    par_dfs2_solve(input)
 }
 
 fn phi(position: usize, speed: usize, has_stone: &[bool]) -> bool {

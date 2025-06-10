@@ -7,8 +7,8 @@ use criterion::{
 use frog_jump::{
     Input, parse_input,
     solve::{
-        dfs_solve, iterative_solve, par_dfs_solve, par_solve, recursive_solve,
-        walk_tree_solve,
+        dfs_solve, iterative_solve, par_dfs_solve, par_dfs2_solve, par_solve,
+        recursive_solve, walk_tree_solve,
     },
 };
 
@@ -48,11 +48,12 @@ pub fn bench(c: &mut Criterion) {
 
     const SIZE: usize = 10_000;
 
-    let callees: [(_, fn(_) -> _); 6] = [
+    let callees: [(_, fn(_) -> _); 7] = [
         ("dfs", dfs_solve),
         ("iterative", iterative_solve),
         ("par", par_solve),
         ("dfs (par)", par_dfs_solve),
+        ("dfs (par) (second implementation)", par_dfs2_solve),
         ("recursive", recursive_solve),
         ("walk tree", walk_tree_solve),
     ];
