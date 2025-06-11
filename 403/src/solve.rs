@@ -1,7 +1,3 @@
-use std::cmp::min;
-
-use rayon::iter::IntoParallelIterator;
-
 use crate::{Input, State};
 
 pub fn dfs_solve(input: Input) -> bool {
@@ -151,42 +147,45 @@ pub fn solve(input: Input) -> bool {
 }
 
 pub fn par_dfs2_solve(input: Input) -> bool {
-    fn __solve(
-        input: Input,
-        max_depth: usize,
-        is_visited: &HashSet<State>,
+    fn solve(
+        mut to_visit: Vec<(usize, State)>,
+        has_stone: &[bool],
         len: usize,
-    ) -> Vec<State> {
-        let mut to_visit = vec![input.root];
+        is_visited: &HashSet<State>,
+    ) -> Option<Vec<(usize, State)>> {
+        const MAX_DEPTH: usize = 128;
 
-        for _ in 0..max_depth {
-            if let Some(all @ (p, s)) = to_visit.pop() {
-                if p == len - 1 {
-                    return vec![all];
-                } else if is_visited.insert(all).is_ok() {
-                    let small_speed = s - 1;
-                    let big_speed = s + 1;
-                    let big_position = p + big_speed;
+        while let Some((depth, state @ (p, s))) = to_visit.pop() {
+            if depth > MAX_DEPTH {
+                continue;
+            }
 
-                    let next = Some((big_position, big_speed))
-                        .into_iter()
-                        .chain(
-                            (small_speed > 0)
-                                .then_some((p + small_speed, small_speed)),
-                        )
-                        .chain(Some((p + s, s)))
-                        .filter(|all @ (position, _)| {
-                            *position < len
-                                && !is_visited.contains(all)
-                                && input.has_stone[*position]
-                        });
+            if p == len - 1 {
+                return None;
+            } else if is_visited.insert(state).is_ok() {
+                let small_speed = s - 1;
+                let big_speed = s + 1;
+                let big_position = p + big_speed;
 
-                    to_visit.extend(next)
-                }
+                let next = Some((big_position, big_speed))
+                    .into_iter()
+                    .chain(
+                        (small_speed > 0)
+                            .then_some((p + small_speed, small_speed)),
+                    )
+                    .chain(Some((p + s, s)))
+                    .filter(|state @ (position, _)| {
+                        (*position < len)
+                            && !is_visited.contains(state)
+                            && has_stone[*position]
+                    })
+                    .map(|state| (depth + 1, state));
+
+                to_visit.extend(next);
             }
         }
 
-        to_visit
+        Some(to_visit)
     }
 
     use rayon::prelude::*;
@@ -194,31 +193,34 @@ pub fn par_dfs2_solve(input: Input) -> bool {
 
     let len = input.len();
 
-    let max_depth = 5;
-    let max_task = rayon::current_num_threads() - 1;
+    const MAX_TASK: usize = 8;
+    const TASK_SIZE: usize = 3;
 
     let is_visited = HashSet::new();
-    let mut to_visit = vec![input.root];
+    let mut to_visit = vec![(0, input.root)];
 
-    while let Some(last @ (p, _)) = to_visit.pop() {
-        if p == len - 1 {
-            return true;
-        } else {
-            let last_next = __solve(
-                Input::new(input.has_stone, last),
-                max_depth,
-                &is_visited,
-                len,
-            );
+    while !to_visit.is_empty() {
+        let next = to_visit
+            .par_drain(to_visit.len().saturating_sub(TASK_SIZE * MAX_TASK)..)
+            .chunks(TASK_SIZE)
+            .try_fold(Vec::new, |mut next, to_visit| {
+                let to_push =
+                    solve(to_visit, input.has_stone, len, &is_visited)
+                        .ok_or(())?
+                        .into_iter()
+                        .map(|(_, state)| (0, state));
 
-            let next = to_visit
-                .par_drain(0..min(max_task, to_visit.len()))
-                .map(|base| Input::new(input.has_stone, base))
-                .flat_map(|input| __solve(input, max_depth, &is_visited, len))
-                .collect::<Vec<_>>();
+                next.extend(to_push);
+                Ok(next)
+            })
+            .try_reduce(Vec::new, |mut lhs, rhs| {
+                lhs.extend(rhs);
+                Ok(lhs)
+            });
 
-            to_visit.extend(next);
-            to_visit.extend(last_next);
+        match next {
+            Ok(next) => to_visit.extend(next),
+            Err(()) => return true,
         }
     }
 
