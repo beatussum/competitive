@@ -6,35 +6,31 @@ pub fn dfs_solve(input: Input) -> bool {
     let len = input.len();
 
     let mut is_visited = HashSet::new();
-    let mut stack = vec![(0, 1)];
+    let mut to_visit = vec![input.root];
 
-    while let Some((p, s)) = stack.pop() {
+    while let Some(state @ (p, s)) = to_visit.pop() {
         if p == len - 1 {
-            break;
-        }
+            return true;
+        } else if is_visited.insert(state) {
+            let small_speed = s - 1;
+            let big_speed = s + 1;
+            let big_position = p + big_speed;
 
-        if !is_visited.contains(&(p, s)) {
-            is_visited.insert((p, s));
-
-            let slow_speed = s - 1;
-            let large_speed = s + 1;
-            let large_position = p + large_speed;
-
-            let to_visit = Some((large_position, large_speed))
+            let next = Some((big_position, big_speed))
                 .into_iter()
-                .chain((slow_speed > 0).then_some((p + slow_speed, slow_speed)))
+                .chain(
+                    (small_speed > 0).then_some((p + small_speed, small_speed)),
+                )
                 .chain(Some((p + s, s)))
-                .filter(|all @ (position, _)| {
-                    *position < len
-                        && !is_visited.contains(all)
-                        && input.has_stone[*position]
+                .filter(|all @ (p, _)| {
+                    *p < len && !is_visited.contains(all) && input.has_stone[*p]
                 });
 
-            stack.extend(to_visit)
+            to_visit.extend(next)
         }
     }
 
-    !stack.is_empty()
+    false
 }
 
 #[cfg(feature = "dfs")]
