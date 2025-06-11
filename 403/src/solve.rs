@@ -187,21 +187,64 @@ pub fn par_dfs2_solve(input: Input) -> bool {
         Some(next)
     }
 
+    #[cfg(feature = "par_dfs2_threshold")]
+    fn solve(
+        mut to_visit: Vec<State>,
+        has_stone: &[bool],
+        len: usize,
+        is_visited: &HashSet<State>,
+    ) -> Option<Vec<State>> {
+        const MAX_ITER: usize = 400;
+
+        for _ in 0..MAX_ITER {
+            match to_visit.pop() {
+                None => break,
+
+                Some(state @ (p, s)) => {
+                    if p == len - 1 {
+                        return None;
+                    } else if is_visited.insert(state).is_ok() {
+                        let small_speed = s - 1;
+                        let big_speed = s + 1;
+                        let big_position = p + big_speed;
+
+                        let next = Some((big_position, big_speed))
+                            .into_iter()
+                            .chain(
+                                (small_speed > 0)
+                                    .then_some((p + small_speed, small_speed)),
+                            )
+                            .chain(Some((p + s, s)))
+                            .filter(|state @ (position, _)| {
+                                (*position < len)
+                                    && !is_visited.contains(state)
+                                    && has_stone[*position]
+                            });
+
+                        to_visit.extend(next);
+                    }
+                }
+            }
+        }
+
+        Some(to_visit)
+    }
+
     use rayon::prelude::*;
     use scc::HashSet;
 
     let len = input.len();
 
-    const MAX_TASK: usize = 8;
-    let task_size: usize = rayon::current_num_threads();
+    let max_task = rayon::current_num_threads();
+    const TASK_SIZE: usize = 1;
 
     let is_visited = HashSet::new();
     let mut to_visit = vec![input.root];
 
     while !to_visit.is_empty() {
         let next = to_visit
-            .par_drain(to_visit.len().saturating_sub(task_size * MAX_TASK)..)
-            .chunks(task_size)
+            .par_drain(to_visit.len().saturating_sub(TASK_SIZE * max_task)..)
+            .chunks(TASK_SIZE)
             .try_fold(Vec::new, |mut next, to_visit| {
                 let to_push =
                     solve(to_visit, input.has_stone, len, &is_visited)
