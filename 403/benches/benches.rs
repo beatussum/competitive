@@ -44,7 +44,7 @@ pub fn bench(c: &mut Criterion) {
     rayon::ThreadPoolBuilder::new()
         .num_threads(8)
         .build_global()
-        .unwrap();
+        .expect("The thread pool building has failed");
 
     const SIZE: usize = 10_000;
 
@@ -92,7 +92,7 @@ pub fn bench(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("trap");
 
-    let has_stone = parse_file("trap.json").unwrap();
+    let has_stone = parse_file("trap.json").expect("File parsing has failed");
     let input = Input::new(&has_stone, (0, 1));
 
     group.throughput(Throughput::Elements(has_stone.len() as u64));
