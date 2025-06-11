@@ -229,21 +229,46 @@ pub fn solve(input: Input) -> bool {
     par_dfs2_solve(input)
 }
 
-fn phi(position: usize, speed: usize, has_stone: &[bool]) -> bool {
-    (position == has_stone.len() - 1)
-        || (has_stone[position + speed]
-            && phi(position + speed, speed, has_stone))
-        || ((speed > 1)
-            && has_stone[position + speed - 1]
-            && phi(position + speed - 1, speed - 1, has_stone))
-        || ((position + speed + 1 < has_stone.len())
-            && has_stone[position + speed + 1]
-            && phi(position + speed + 1, speed + 1, has_stone))
-}
-
 pub fn recursive_solve(input: Input) -> bool {
+    fn phi(
+        position: usize,
+        speed: usize,
+        has_stone: &[bool],
+        is_visited: &mut HashMap<State, bool>,
+    ) -> Option<bool> {
+        if !is_visited.contains_key(&(position, speed)) {
+            let ret = (position == has_stone.len() - 1)
+                || (has_stone[position + speed]
+                    && phi(position + speed, speed, has_stone, is_visited)?)
+                || ((speed > 1)
+                    && has_stone[position + speed - 1]
+                    && phi(
+                        position + speed - 1,
+                        speed - 1,
+                        has_stone,
+                        is_visited,
+                    )?)
+                || ((position + speed + 1 < has_stone.len())
+                    && has_stone[position + speed + 1]
+                    && phi(
+                        position + speed + 1,
+                        speed + 1,
+                        has_stone,
+                        is_visited,
+                    )?);
+
+            is_visited.insert((position, speed), ret);
+        }
+
+        is_visited.get(&(position, speed)).copied()
+    }
+
+    use std::collections::HashMap;
+
     let (p, s) = input.root;
-    phi(p, s, input.has_stone)
+    let mut is_visited = HashMap::default();
+
+    phi(p, s, input.has_stone, &mut is_visited).unwrap_or(false)
 }
 
 #[cfg(feature = "recursive")]
