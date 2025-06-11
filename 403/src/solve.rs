@@ -147,21 +147,23 @@ pub fn solve(input: Input) -> bool {
 }
 
 pub fn par_dfs2_solve(input: Input) -> bool {
+    #[cfg(feature = "par_dfs2_depth")]
     fn solve(
-        mut to_visit: Vec<(usize, State)>,
+        mut next: Vec<State>,
         has_stone: &[bool],
         len: usize,
         is_visited: &HashSet<State>,
-    ) -> Option<Vec<(usize, State)>> {
-        const MAX_DEPTH: usize = 128;
+    ) -> Option<Vec<State>> {
+        const MAX_DEPTH: usize = 256;
+
+        let mut to_visit =
+            next.drain(..).map(|state| (0, state)).collect::<Vec<_>>();
 
         while let Some((depth, state @ (p, s))) = to_visit.pop() {
-            if depth > MAX_DEPTH {
-                continue;
-            }
-
             if p == len - 1 {
                 return None;
+            } else if depth > MAX_DEPTH {
+                next.push(state);
             } else if is_visited.insert(state).is_ok() {
                 let small_speed = s - 1;
                 let big_speed = s + 1;
@@ -185,7 +187,8 @@ pub fn par_dfs2_solve(input: Input) -> bool {
             }
         }
 
-        Some(to_visit)
+        next.extend(to_visit.into_iter().map(|(_, state)| state));
+        Some(next)
     }
 
     use rayon::prelude::*;
@@ -194,21 +197,19 @@ pub fn par_dfs2_solve(input: Input) -> bool {
     let len = input.len();
 
     const MAX_TASK: usize = 8;
-    const TASK_SIZE: usize = 3;
+    let task_size: usize = rayon::current_num_threads();
 
     let is_visited = HashSet::new();
-    let mut to_visit = vec![(0, input.root)];
+    let mut to_visit = vec![input.root];
 
     while !to_visit.is_empty() {
         let next = to_visit
-            .par_drain(to_visit.len().saturating_sub(TASK_SIZE * MAX_TASK)..)
-            .chunks(TASK_SIZE)
+            .par_drain(to_visit.len().saturating_sub(task_size * MAX_TASK)..)
+            .chunks(task_size)
             .try_fold(Vec::new, |mut next, to_visit| {
                 let to_push =
                     solve(to_visit, input.has_stone, len, &is_visited)
-                        .ok_or(())?
-                        .into_iter()
-                        .map(|(_, state)| (0, state));
+                        .ok_or(())?;
 
                 next.extend(to_push);
                 Ok(next)
