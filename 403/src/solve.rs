@@ -148,7 +148,7 @@ pub fn par_dfs2_solve(input: Input) -> bool {
         mut next: Vec<State>,
         has_stone: &[bool],
         len: usize,
-        is_visited: &HashSet<State>,
+        is_visited: &DashSet<State>,
     ) -> Option<Vec<State>> {
         let mut to_visit =
             next.drain(..).map(|state| (0, state)).collect::<Vec<_>>();
@@ -158,7 +158,7 @@ pub fn par_dfs2_solve(input: Input) -> bool {
                 return None;
             } else if depth > P {
                 next.push(state);
-            } else if is_visited.insert(state).is_ok() {
+            } else if is_visited.insert(state) {
                 let small_speed = s - 1;
                 let big_speed = s + 1;
                 let big_position = p + big_speed;
