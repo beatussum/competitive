@@ -192,7 +192,7 @@ pub fn par_dfs2_solve(input: Input) -> bool {
         mut to_visit: Vec<State>,
         has_stone: &[bool],
         len: usize,
-        is_visited: &HashSet<State>,
+        is_visited: &DashSet<State>,
     ) -> Option<Vec<State>> {
         const MAX_ITER: usize = 400;
 
@@ -203,7 +203,7 @@ pub fn par_dfs2_solve(input: Input) -> bool {
                 Some(state @ (p, s)) => {
                     if p == len - 1 {
                         return None;
-                    } else if is_visited.insert(state).is_ok() {
+                    } else if is_visited.insert(state) {
                         let small_speed = s - 1;
                         let big_speed = s + 1;
                         let big_position = p + big_speed;
@@ -230,15 +230,15 @@ pub fn par_dfs2_solve(input: Input) -> bool {
         Some(to_visit)
     }
 
+    use dashmap::DashSet;
     use rayon::prelude::*;
-    use scc::HashSet;
 
     let len = input.len();
 
     let max_task = rayon::current_num_threads();
     const TASK_SIZE: usize = 1;
 
-    let is_visited = HashSet::new();
+    let is_visited = DashSet::new();
     let mut to_visit = vec![input.root];
 
     while !to_visit.is_empty() {
@@ -320,28 +320,35 @@ pub fn solve(input: Input) -> bool {
 }
 
 pub fn walk_tree_solve(input: Input) -> bool {
+    use dashmap::DashSet;
     use rayon::iter::walk_tree;
     use rayon::prelude::*;
-    use scc::HashSet;
 
-    let is_visited = HashSet::new();
+    let is_visited = DashSet::new();
 
     walk_tree((0, 1), |&state @ (p, s)| {
-        let is_not_visited = is_visited.insert(state).is_ok();
+        is_visited
+            .insert(state)
+            .then(|| {
+                let small_speed = s - 1;
+                let big_speed = s + 1;
+                let big_position = p + big_speed;
 
-        let small_speed = s - 1;
-        let big_speed = s + 1;
-        let big_position = p + big_speed;
-
-        Some((big_position, big_speed))
-            .into_iter()
-            .chain((small_speed > 0).then_some((p + small_speed, small_speed)))
-            .chain(Some((p + s, s)))
-            .filter(move |(position, _)| {
-                is_not_visited
-                    && (*position < input.len())
-                    && input.has_stone[*position]
+                Some((big_position, big_speed))
+                    .into_iter()
+                    .chain(
+                        (small_speed > 0)
+                            .then_some((p + small_speed, small_speed)),
+                    )
+                    .chain(Some((p + s, s)))
+                    .filter(|state @ &(p, _)| {
+                        !is_visited.contains(state)
+                            && (p < input.len())
+                            && input.has_stone[p]
+                    })
             })
+            .into_iter()
+            .flatten()
     })
     .find_any(|(position, _)| *position == input.len() - 1)
     .is_some()

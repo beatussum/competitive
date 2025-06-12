@@ -6,12 +6,12 @@ use rayon::iter::{
 };
 
 use super::State;
-use scc::HashSet;
+use dashmap::DashSet;
 
 pub struct StateIterator<'a> {
     root: State,
     has_stone: &'a [bool],
-    is_visited: HashSet<State>,
+    is_visited: DashSet<State>,
 }
 
 impl<'a> StateIterator<'a> {
@@ -19,7 +19,7 @@ impl<'a> StateIterator<'a> {
         Self {
             root,
             has_stone,
-            is_visited: HashSet::default(),
+            is_visited: DashSet::default(),
         }
     }
 }
@@ -65,7 +65,7 @@ impl Into<Vec<State>> for ToVisit {
 
 pub struct StateProducer<'a> {
     has_stone: &'a [bool],
-    is_visited: &'a HashSet<State>,
+    is_visited: &'a DashSet<State>,
     to_visit: ToVisit,
     ancestors: Vec<State>,
 }
@@ -80,7 +80,7 @@ impl UnindexedProducer for StateProducer<'_> {
             Zero => (self, None),
 
             One(root @ (p, s)) => {
-                if self.is_visited.insert(root).is_err() {
+                if !self.is_visited.insert(root) {
                     let left = Self {
                         has_stone: self.has_stone,
                         is_visited: self.is_visited,
@@ -221,7 +221,7 @@ impl UnindexedProducer for StateProducer<'_> {
             folder
         } else {
             while let Some(all @ (p, s)) = to_visit.pop() {
-                if self.is_visited.insert(all).is_ok() {
+                if self.is_visited.insert(all) {
                     let small_speed = s - 1;
                     let big_speed = s + 1;
                     let big_position = p + big_speed;
