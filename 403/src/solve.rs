@@ -284,45 +284,40 @@ pub fn solve(input: Input) -> bool {
 }
 
 pub fn recursive_solve(input: Input) -> bool {
-    fn phi(
-        position: usize,
-        speed: usize,
-        has_stone: &[bool],
-        is_visited: &mut HashMap<State, bool>,
-    ) -> Option<bool> {
-        if !is_visited.contains_key(&(position, speed)) {
-            let ret = (position == has_stone.len() - 1)
-                || (has_stone[position + speed]
-                    && phi(position + speed, speed, has_stone, is_visited)?)
-                || ((speed > 1)
-                    && has_stone[position + speed - 1]
-                    && phi(
-                        position + speed - 1,
-                        speed - 1,
-                        has_stone,
-                        is_visited,
-                    )?)
-                || ((position + speed + 1 < has_stone.len())
-                    && has_stone[position + speed + 1]
-                    && phi(
-                        position + speed + 1,
-                        speed + 1,
-                        has_stone,
-                        is_visited,
-                    )?);
-
-            is_visited.insert((position, speed), ret);
-        }
-
-        is_visited.get(&(position, speed)).copied()
-    }
-
     use std::collections::HashMap;
 
-    let (p, s) = input.root;
-    let mut is_visited = HashMap::default();
+    fn phi(
+        root @ (p, s): State,
+        has_stone: &[bool],
+        is_visited: &mut HashMap<State, bool>,
+    ) -> bool {
+        if !is_visited.contains_key(&root) {
+            let len = has_stone.len();
 
-    phi(p, s, input.has_stone, &mut is_visited).unwrap_or(false)
+            let small_speed = s - 1;
+            let big_speed = s + 1;
+            let big_position = p + big_speed;
+
+            let is_solution = (p == len - 1)
+                || Some((p + s, s))
+                    .into_iter()
+                    .chain(
+                        (small_speed > 0)
+                            .then_some((p + small_speed, small_speed)),
+                    )
+                    .chain(Some((big_position, big_speed)))
+                    .filter(|&(p, _)| (p < len) && has_stone[p])
+                    .find(|&root| phi(root, has_stone, is_visited))
+                    .is_some();
+
+            is_visited.insert(root, is_solution);
+        }
+
+        is_visited.get(&root).copied().unwrap_or(false)
+    }
+
+    let mut is_visited = HashMap::default();
+    phi(input.root, input.has_stone, &mut is_visited)
 }
 
 #[cfg(feature = "recursive")]
