@@ -144,21 +144,19 @@ pub fn solve(input: Input) -> bool {
 
 pub fn par_dfs2_solve(input: Input) -> bool {
     #[cfg(feature = "par_dfs2_depth")]
-    fn solve(
+    fn solve<const P: usize>(
         mut next: Vec<State>,
         has_stone: &[bool],
         len: usize,
         is_visited: &HashSet<State>,
     ) -> Option<Vec<State>> {
-        const MAX_DEPTH: usize = 256;
-
         let mut to_visit =
             next.drain(..).map(|state| (0, state)).collect::<Vec<_>>();
 
         while let Some((depth, state @ (p, s))) = to_visit.pop() {
             if p == len - 1 {
                 return None;
-            } else if depth > MAX_DEPTH {
+            } else if depth > P {
                 next.push(state);
             } else if is_visited.insert(state).is_ok() {
                 let small_speed = s - 1;
@@ -188,15 +186,13 @@ pub fn par_dfs2_solve(input: Input) -> bool {
     }
 
     #[cfg(feature = "par_dfs2_threshold")]
-    fn solve(
+    fn solve<const P: usize>(
         mut to_visit: Vec<State>,
         has_stone: &[bool],
         len: usize,
         is_visited: &DashSet<State>,
     ) -> Option<Vec<State>> {
-        const MAX_ITER: usize = 400;
-
-        for _ in 0..MAX_ITER {
+        for _ in 0..P {
             match to_visit.pop() {
                 None => break,
 
@@ -233,34 +229,49 @@ pub fn par_dfs2_solve(input: Input) -> bool {
     use dashmap::DashSet;
     use rayon::prelude::*;
 
-    let len = input.len();
-
     let max_task = rayon::current_num_threads();
+    const P: usize = 1_024;
     const TASK_SIZE: usize = 1;
 
     let is_visited = DashSet::new();
     let mut to_visit = vec![input.root];
 
     while !to_visit.is_empty() {
-        let next = to_visit
-            .par_drain(to_visit.len().saturating_sub(TASK_SIZE * max_task)..)
-            .chunks(TASK_SIZE)
-            .try_fold(Vec::new, |mut next, to_visit| {
-                let to_push =
-                    solve(to_visit, input.has_stone, len, &is_visited)
-                        .ok_or(())?;
+        if to_visit.len() < max_task {
+            let next =
+                solve::<P>(to_visit, input.has_stone, input.len(), &is_visited);
 
-                next.extend(to_push);
-                Ok(next)
-            })
-            .try_reduce(Vec::new, |mut lhs, rhs| {
-                lhs.extend(rhs);
-                Ok(lhs)
-            });
+            match next {
+                Some(next) => to_visit = next,
+                None => return true,
+            }
+        } else {
+            let next = to_visit
+                .par_drain(
+                    to_visit.len().saturating_sub(TASK_SIZE * max_task)..,
+                )
+                .chunks(TASK_SIZE)
+                .try_fold(Vec::new, |mut next, to_visit| {
+                    let to_push = solve::<P>(
+                        to_visit,
+                        input.has_stone,
+                        input.len(),
+                        &is_visited,
+                    )
+                    .ok_or(())?;
 
-        match next {
-            Ok(next) => to_visit.extend(next),
-            Err(()) => return true,
+                    next.extend(to_push);
+                    Ok(next)
+                })
+                .try_reduce(Vec::new, |mut lhs, rhs| {
+                    lhs.extend(rhs);
+                    Ok(lhs)
+                });
+
+            match next {
+                Ok(next) => to_visit.extend(next),
+                Err(()) => return true,
+            }
         }
     }
 
