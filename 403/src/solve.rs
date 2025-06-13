@@ -22,8 +22,8 @@ pub fn dfs_solve(input: Input) -> bool {
                     (small_speed > 0).then_some((p + small_speed, small_speed)),
                 )
                 .chain(Some((p + s, s)))
-                .filter(|all @ (p, _)| {
-                    *p < len && !is_visited.contains(all) && input.has_stone[*p]
+                .filter(|all @ &(p, _)| {
+                    (p < len) && input.has_stone[p] && !is_visited.contains(all)
                 });
 
             to_visit.extend(next)
