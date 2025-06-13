@@ -143,49 +143,6 @@ pub fn solve(input: Input) -> bool {
 }
 
 pub fn par_dfs2_solve(input: Input) -> bool {
-    #[cfg(feature = "par_dfs2_depth")]
-    fn solve<const P: usize>(
-        mut next: Vec<State>,
-        has_stone: &[bool],
-        len: usize,
-        is_visited: &DashSet<State>,
-    ) -> Option<Vec<State>> {
-        let mut to_visit =
-            next.drain(..).map(|state| (0, state)).collect::<Vec<_>>();
-
-        while let Some((depth, state @ (p, s))) = to_visit.pop() {
-            if p == len - 1 {
-                return None;
-            } else if depth > P {
-                next.push(state);
-            } else if is_visited.insert(state) {
-                let small_speed = s - 1;
-                let big_speed = s + 1;
-                let big_position = p + big_speed;
-
-                let next = Some((big_position, big_speed))
-                    .into_iter()
-                    .chain(
-                        (small_speed > 0)
-                            .then_some((p + small_speed, small_speed)),
-                    )
-                    .chain(Some((p + s, s)))
-                    .filter(|state @ (position, _)| {
-                        (*position < len)
-                            && !is_visited.contains(state)
-                            && has_stone[*position]
-                    })
-                    .map(|state| (depth + 1, state));
-
-                to_visit.extend(next);
-            }
-        }
-
-        next.extend(to_visit.into_iter().map(|(_, state)| state));
-        Some(next)
-    }
-
-    #[cfg(feature = "par_dfs2_threshold")]
     fn solve<const P: usize>(
         mut to_visit: Vec<State>,
         has_stone: &[bool],

@@ -17,8 +17,6 @@ iterative = []
 par = []
 par_dfs = []
 par_dfs2 = []
-par_dfs2_depth = []
-par_dfs2_threshold = []
 recursive = []
 walk_tree = []
 
