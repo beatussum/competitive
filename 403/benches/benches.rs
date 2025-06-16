@@ -42,7 +42,7 @@ fn parse_file(filename: &str) -> Result<Vec<bool>, Box<dyn Error>> {
 
 pub fn bench(c: &mut Criterion) {
     rayon::ThreadPoolBuilder::new()
-        .num_threads(8)
+        .num_threads(2)
         .build_global()
         .expect("The thread pool building has failed");
 

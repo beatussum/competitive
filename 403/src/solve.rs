@@ -143,12 +143,42 @@ pub fn solve(input: Input) -> bool {
 }
 
 pub fn par_dfs2_solve(input: Input) -> bool {
+    use ahash::RandomState;
+    use rayon::prelude::*;
+    use std::cell::RefCell;
+    use std::collections::HashSet;
+
+    #[derive(Default)]
+    struct IsVisited {}
+
+    impl IsVisited {
+        thread_local! {
+            static LOCAL: RefCell<HashSet<State, RandomState>> =
+                RefCell::new(HashSet::default());
+        }
+
+        pub fn is_marked(&self, state: &State) -> bool {
+            Self::LOCAL.with_borrow(|local| local.contains(state))
+        }
+
+        pub fn mark(&self, state: State) -> bool {
+            Self::LOCAL.with_borrow_mut(|local| local.insert(state))
+        }
+    }
+
+    impl Drop for IsVisited {
+        fn drop(&mut self) {
+            Self::LOCAL.with_borrow_mut(|local| local.clear());
+        }
+    }
+
     fn solve<const P: usize>(
         mut to_visit: Vec<State>,
         has_stone: &[bool],
-        len: usize,
-        is_visited: &DashSet<State>,
+        is_visited: &IsVisited,
     ) -> Option<Vec<State>> {
+        let len = has_stone.len();
+
         for _ in 0..P {
             match to_visit.pop() {
                 None => break,
@@ -156,7 +186,7 @@ pub fn par_dfs2_solve(input: Input) -> bool {
                 Some(state @ (p, s)) => {
                     if p == len - 1 {
                         return None;
-                    } else if is_visited.insert(state) {
+                    } else if is_visited.mark(state) {
                         let small_speed = s - 1;
                         let big_speed = s + 1;
                         let big_position = p + big_speed;
@@ -168,10 +198,10 @@ pub fn par_dfs2_solve(input: Input) -> bool {
                                     .then_some((p + small_speed, small_speed)),
                             )
                             .chain(Some((p + s, s)))
-                            .filter(|state @ (position, _)| {
-                                (*position < len)
-                                    && !is_visited.contains(state)
-                                    && has_stone[*position]
+                            .filter(|state @ &(p, _)| {
+                                (p < len)
+                                    && has_stone[p]
+                                    && !is_visited.is_marked(state)
                             });
 
                         to_visit.extend(next);
@@ -183,20 +213,17 @@ pub fn par_dfs2_solve(input: Input) -> bool {
         Some(to_visit)
     }
 
-    use dashmap::DashSet;
-    use rayon::prelude::*;
-
     let max_task = rayon::current_num_threads();
-    const P: usize = 1_024;
-    const TASK_SIZE: usize = 1;
+    const P: usize = 3_096;
 
-    let is_visited = DashSet::new();
+    let is_visited = IsVisited::default();
     let mut to_visit = vec![input.root];
 
     while !to_visit.is_empty() {
-        if to_visit.len() < max_task {
-            let next =
-                solve::<P>(to_visit, input.has_stone, input.len(), &is_visited);
+        let len = to_visit.len();
+
+        if len < max_task {
+            let next = solve::<P>(to_visit, input.has_stone, &is_visited);
 
             match next {
                 Some(next) => to_visit = next,
@@ -204,18 +231,12 @@ pub fn par_dfs2_solve(input: Input) -> bool {
             }
         } else {
             let next = to_visit
-                .par_drain(
-                    to_visit.len().saturating_sub(TASK_SIZE * max_task)..,
-                )
-                .chunks(TASK_SIZE)
+                .par_drain(..)
+                .chunks(len.div_ceil(max_task))
                 .try_fold(Vec::new, |mut next, to_visit| {
-                    let to_push = solve::<P>(
-                        to_visit,
-                        input.has_stone,
-                        input.len(),
-                        &is_visited,
-                    )
-                    .ok_or(())?;
+                    let to_push =
+                        solve::<P>(to_visit, input.has_stone, &is_visited)
+                            .ok_or(())?;
 
                     next.extend(to_push);
                     Ok(next)
