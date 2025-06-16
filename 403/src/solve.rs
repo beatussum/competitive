@@ -223,7 +223,7 @@ pub fn par_dfs2_solve(input: Input) -> bool {
         let len = to_visit.len();
 
         if len < max_task {
-            let next = solve::<P>(to_visit, input.has_stone, &is_visited);
+            let next = solve::<P>(to_visit, &input.has_stone, &is_visited);
 
             match next {
                 Some(next) => to_visit = next,
@@ -235,7 +235,7 @@ pub fn par_dfs2_solve(input: Input) -> bool {
                 .chunks(len.div_ceil(max_task))
                 .try_fold(Vec::new, |mut next, to_visit| {
                     let to_push =
-                        solve::<P>(to_visit, input.has_stone, &is_visited)
+                        solve::<P>(to_visit, &input.has_stone, &is_visited)
                             .ok_or(())?;
 
                     next.extend(to_push);
@@ -295,7 +295,7 @@ pub fn recursive_solve(input: Input) -> bool {
     }
 
     let mut is_visited = HashMap::default();
-    phi(input.root, input.has_stone, &mut is_visited)
+    phi(input.root, &input.has_stone, &mut is_visited)
 }
 
 #[cfg(feature = "recursive")]

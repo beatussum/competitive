@@ -12,6 +12,11 @@ fn main() {
     let input = input.trim().split(',');
     let input = parse(input);
     let has_stone = parse_input(input);
-    let input = Input::new(&has_stone, (0, 1));
+
+    let input = Input {
+        has_stone,
+        root: (0, 1),
+    };
+
     println!("{}", solve(input));
 }

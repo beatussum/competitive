@@ -8,24 +8,20 @@ pub use solve::solve;
 
 pub type State = (usize, usize);
 
-#[derive(Clone, Copy)]
-pub struct Input<'a> {
-    has_stone: &'a [bool],
-    root: State,
+#[derive(Clone)]
+pub struct Input {
+    pub has_stone: Vec<bool>,
+    pub root: State,
 }
 
-impl<'a> Input<'a> {
-    pub fn new(has_stone: &'a [bool], root: State) -> Self {
-        Self { has_stone, root }
-    }
-
+impl Input {
     pub fn len(&self) -> usize {
         self.has_stone.len()
     }
 }
 
-impl<'a> IntoParallelIterator for Input<'a> {
-    type Iter = StateIterator<'a>;
+impl IntoParallelIterator for Input {
+    type Iter = StateIterator<Vec<bool>>;
     type Item = State;
 
     fn into_par_iter(self) -> Self::Iter {
@@ -33,12 +29,12 @@ impl<'a> IntoParallelIterator for Input<'a> {
     }
 }
 
-impl<'a> IntoParallelRefIterator<'a> for Input<'a> {
-    type Iter = StateIterator<'a>;
+impl<'a> IntoParallelRefIterator<'a> for Input {
+    type Iter = StateIterator<&'a [bool]>;
     type Item = State;
 
     fn par_iter(&'a self) -> Self::Iter {
-        StateIterator::new(self.root, self.has_stone)
+        StateIterator::new(self.root, self.has_stone.as_slice())
     }
 }
 

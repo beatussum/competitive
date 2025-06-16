@@ -8,14 +8,20 @@ use rayon::iter::{
 use super::State;
 use dashmap::DashSet;
 
-pub struct StateIterator<'a> {
+pub struct StateIterator<T>
+where
+    T: AsRef<[bool]> + Send,
+{
     root: State,
-    has_stone: &'a [bool],
+    has_stone: T,
     is_visited: DashSet<State>,
 }
 
-impl<'a> StateIterator<'a> {
-    pub fn new(root: State, has_stone: &'a [bool]) -> Self {
+impl<T> StateIterator<T>
+where
+    T: AsRef<[bool]> + Send,
+{
+    pub fn new(root: State, has_stone: T) -> Self {
         Self {
             root,
             has_stone,
@@ -24,7 +30,10 @@ impl<'a> StateIterator<'a> {
     }
 }
 
-impl ParallelIterator for StateIterator<'_> {
+impl<T> ParallelIterator for StateIterator<T>
+where
+    T: AsRef<[bool]> + Send,
+{
     type Item = State;
 
     fn drive_unindexed<C>(self, consumer: C) -> C::Result
@@ -34,7 +43,7 @@ impl ParallelIterator for StateIterator<'_> {
         use ToVisit::*;
 
         let producer = StateProducer {
-            has_stone: &self.has_stone,
+            has_stone: self.has_stone.as_ref(),
             is_visited: &self.is_visited,
             to_visit: One(self.root),
             ancestors: Vec::default(),
