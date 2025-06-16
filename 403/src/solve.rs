@@ -1,11 +1,11 @@
 use crate::{Input, State};
 
 pub fn dfs_solve(input: Input) -> bool {
-    use std::collections::HashSet;
+    type HashSet<T> = std::collections::HashSet<T, ahash::RandomState>;
 
     let len = input.len();
 
-    let mut is_visited = HashSet::new();
+    let mut is_visited = HashSet::default();
     let mut to_visit = vec![input.root];
 
     while let Some(state @ (p, s)) = to_visit.pop() {
