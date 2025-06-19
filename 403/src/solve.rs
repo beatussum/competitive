@@ -1,6 +1,6 @@
 use crate::{Input, State};
 
-pub fn dfs_solve(input: Input) -> bool {
+pub fn dfs_solve(input: &Input) -> bool {
     type HashSet<T> = std::collections::HashSet<T, ahash::RandomState>;
 
     let len = input.len();
@@ -34,11 +34,11 @@ pub fn dfs_solve(input: Input) -> bool {
 }
 
 #[cfg(feature = "dfs")]
-pub fn solve(input: Input) -> bool {
+pub fn solve(input: &Input) -> bool {
     dfs_solve(input)
 }
 
-pub fn iterative_solve(input: Input) -> bool {
+pub fn iterative_solve(input: &Input) -> bool {
     let len = input.len();
 
     let mut is_solvable_with = (0..len)
@@ -71,11 +71,11 @@ pub fn iterative_solve(input: Input) -> bool {
 }
 
 #[cfg(feature = "iterative")]
-pub fn solve(input: Input) -> bool {
+pub fn solve(input: &Input) -> bool {
     iterative_solve(input)
 }
 
-pub fn par_solve(input: Input) -> bool {
+pub fn par_solve(input: &Input) -> bool {
     use rayon::prelude::*;
 
     let len = input.len();
@@ -122,27 +122,27 @@ pub fn par_solve(input: Input) -> bool {
 }
 
 #[cfg(feature = "par")]
-pub fn solve(input: Input) -> bool {
+pub fn solve(input: &Input) -> bool {
     par_solve(input)
 }
 
-pub fn par_dfs_solve(input: Input) -> bool {
+pub fn par_dfs_solve(input: &Input) -> bool {
     use rayon::prelude::*;
 
     let last = input.len() - 1;
 
     input
-        .into_par_iter()
+        .par_iter()
         .find_any(|(position, _)| *position == last)
         .is_some()
 }
 
 #[cfg(feature = "par_dfs")]
-pub fn solve(input: Input) -> bool {
+pub fn solve(input: &Input) -> bool {
     par_dfs_solve(input)
 }
 
-pub fn par_dfs2_solve(input: Input) -> bool {
+pub fn par_dfs2_solve(input: &Input) -> bool {
     use ahash::RandomState;
     use rayon::prelude::*;
     use std::cell::RefCell;
@@ -257,11 +257,11 @@ pub fn par_dfs2_solve(input: Input) -> bool {
 }
 
 #[cfg(feature = "par_dfs2")]
-pub fn solve(input: Input) -> bool {
+pub fn solve(input: &Input) -> bool {
     par_dfs2_solve(input)
 }
 
-pub fn recursive_solve(input: Input) -> bool {
+pub fn recursive_solve(input: &Input) -> bool {
     use std::collections::HashMap;
 
     fn phi(
@@ -299,11 +299,11 @@ pub fn recursive_solve(input: Input) -> bool {
 }
 
 #[cfg(feature = "recursive")]
-pub fn solve(input: Input) -> bool {
+pub fn solve(input: &Input) -> bool {
     recursive_solve(input)
 }
 
-pub fn walk_tree_solve(input: Input) -> bool {
+pub fn walk_tree_solve(input: &Input) -> bool {
     use dashmap::DashSet;
     use rayon::iter::walk_tree;
     use rayon::prelude::*;
@@ -339,6 +339,6 @@ pub fn walk_tree_solve(input: Input) -> bool {
 }
 
 #[cfg(feature = "walk_tree")]
-pub fn solve(input: Input) -> bool {
+pub fn solve(input: &Input) -> bool {
     walk_tree_solve(input)
 }

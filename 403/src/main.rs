@@ -18,5 +18,5 @@ fn main() {
         root: (0, 1),
     };
 
-    println!("{}", solve(input));
+    println!("{}", solve(&input));
 }
